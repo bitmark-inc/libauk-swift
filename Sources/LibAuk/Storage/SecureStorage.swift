@@ -10,6 +10,7 @@ import Combine
 import LibWally
 import Web3
 import KukaiCoreSwift
+import BitmarkSDK
 
 public protocol SecureStorageProtocol {
     func createKey(name: String) -> AnyPublisher<Void, Error>
@@ -24,6 +25,7 @@ public protocol SecureStorageProtocol {
     func exportSeed() -> AnyPublisher<Seed, Error>
     func exportMnemonicWords() -> AnyPublisher<[String], Error>
     func removeKeys() -> AnyPublisher<Void, Error>
+    func getBitmarkAccount() -> AnyPublisher<BitmarkSDK.Account, Error>
 }
 
 class SecureStorage: SecureStorageProtocol {
@@ -248,5 +250,24 @@ class SecureStorage: SecureStorageProtocol {
 
         let keyInfoData = try JSONEncoder().encode(keyInfo)
         keychain.set(keyInfoData, forKey: Constant.KeychainKey.ethInfoKey, isSync: true)
+    }
+    
+    func getBitmarkAccount() -> AnyPublisher<BitmarkSDK.Account, Error> {
+        Future<Seed, Error> { promise in
+            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                  let seed = try? Seed(urString: seedUR.utf8) else {
+                promise(.failure(LibAukError.emptyKey))
+                return
+            }
+            
+            promise(.success(seed))
+        }
+        .compactMap {
+            Keys.mnemonic($0.data)
+        }
+        .tryMap {
+            try Keys.bitmarkAccount(mnemonic: $0)
+        }
+        .eraseToAnyPublisher()
     }
 }

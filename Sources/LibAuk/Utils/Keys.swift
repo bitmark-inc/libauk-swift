@@ -9,6 +9,7 @@ import Foundation
 import LibWally
 import Web3
 import KukaiCoreSwift
+import BitmarkSDK
 
 class Keys {
     
@@ -62,5 +63,17 @@ class Keys {
     
     static func tezosWallet(mnemonic: BIP39Mnemonic, passphrase: String = "") -> HDWallet? {
         HDWallet.create(withMnemonic: mnemonic.words.joined(separator: " "), passphrase: passphrase)
+    }
+    
+    static func bitmarkAccount(mnemonic: BIP39Mnemonic, passphrase: String = "") throws -> BitmarkSDK.Account {
+        let masterKey = try HDKey(seed: mnemonic.seedHex(passphrase: ""))
+        let derivationPath = try BIP32Path(string: Constant.bmkDerivationPath)
+        let account = try masterKey.derive(using: derivationPath)
+        
+        guard let privateKey = account.privKey?.data else {
+            throw LibAukError.keyDerivationError
+        }
+        
+        return try Account(withSeedOrphanedPrivateKey: privateKey, network: account.network == .mainnet ? .livenet : .testnet)
     }
 }
