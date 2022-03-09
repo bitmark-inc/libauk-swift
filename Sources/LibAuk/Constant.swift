@@ -10,6 +10,7 @@ import Foundation
 struct Constant {
     
     static let ethDerivationPath = "m/44'/60'/0'/0/0"
+    static let bitmarkDerivationPath = "m/44'/731'/0'/0/0"
     
     struct KeychainKey {
         static func personaPrefix(at uuid: UUID) -> String {
