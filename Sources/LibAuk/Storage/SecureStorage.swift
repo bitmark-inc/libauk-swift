@@ -21,6 +21,7 @@ public protocol SecureStorageProtocol {
     func sign(message: Bytes) -> AnyPublisher<(v: UInt, r: Bytes, s: Bytes), Error>
     func signTransaction(transaction: EthereumTransaction, chainId: EthereumQuantity) -> AnyPublisher<EthereumSignedTransaction, Error>
     func getTezosWallet() -> AnyPublisher<Wallet, Error>
+    func getBitmarkAddress() -> AnyPublisher<String, Error>
     func exportSeed() -> AnyPublisher<Seed, Error>
     func exportMnemonicWords() -> AnyPublisher<[String], Error>
     func removeKeys() -> AnyPublisher<Void, Error>
@@ -196,6 +197,25 @@ class SecureStorage: SecureStorageProtocol {
         }
         .compactMap {
             Keys.tezosWallet(mnemonic: $0)
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    func getBitmarkAddress() -> AnyPublisher<String, Error> {
+        Future<Seed, Error> { promise in
+            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                  let seed = try? Seed(urString: seedUR.utf8) else {
+                promise(.failure(LibAukError.emptyKey))
+                return
+            }
+            
+            promise(.success(seed))
+        }
+        .compactMap {
+            Keys.mnemonic($0.data)
+        }
+        .tryMap {
+            try Keys.bitmarkPrivateKey(mnemonic: $0)
         }
         .eraseToAnyPublisher()
     }
