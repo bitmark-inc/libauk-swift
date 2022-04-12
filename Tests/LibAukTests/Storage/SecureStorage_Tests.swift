@@ -143,6 +143,56 @@ class SecureStorage_Tests: XCTestCase {
         XCTAssertEqual(storage.getETHAddress(), "0xA00cbE6a45102135A210F231901faA6c05D51465")
     }
     
+    func testGetAccountDIDSuccessfully() throws {
+        let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
+        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date())
+        let seedData = seed.urString.utf8
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        
+        let receivedExpectation = expectation(description: "all values received")
+        
+        storage.getAccountDID()
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .finished:
+                    receivedExpectation.fulfill()
+                case .failure(let error):
+                    XCTFail("get account DID failed \(error)")
+                }
+
+            }, receiveValue: { (did) in
+                XCTAssertEqual(did, "did:key:zQ3shju6YhWXKdxGskg7UeBN8vGs5QMmW7J7pxUzrAoEY3bLG")
+            })
+            .store(in: &cancelBag)
+
+        waitForExpectations(timeout: 1, handler: nil)
+    }
+    
+    func testGetAccountDIDSignatureSuccessfully() throws {
+        let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
+        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date())
+        let seedData = seed.urString.utf8
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        
+        let receivedExpectation = expectation(description: "all values received")
+        
+        storage.getAccountDIDSignature(message: "hello")
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .finished:
+                    receivedExpectation.fulfill()
+                case .failure(let error):
+                    XCTFail("get account DID failed \(error)")
+                }
+
+            }, receiveValue: { (signature) in
+                XCTAssertEqual(signature, "304402206f7914881a66a5692a2ebef505eb7d85ac377e6b57152bc5b908510191aaeead022072fb561b1e7324548df16f38c11326b951fa9f7f2f936caf6f7a2fc53a9aebcf")
+            })
+            .store(in: &cancelBag)
+
+        waitForExpectations(timeout: 1, handler: nil)
+    }
+    
     func testSignMessageSuccessfully() throws {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
         let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date())

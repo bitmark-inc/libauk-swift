@@ -51,6 +51,18 @@ class Keys {
         return try? BIP39Mnemonic(entropy: bip39entropy)
     }
     
+    static func accountDIDPrivateKey(mnemonic: BIP39Mnemonic, passphrase: String = "") throws -> Secp256k1.Signing.PrivateKey {
+        let masterKey = try HDKey(seed: mnemonic.seedHex(passphrase: ""))
+        let derivationPath = try BIP32Path(string: Constant.accountDerivationPath)
+        let account = try masterKey.derive(using: derivationPath)
+        
+        guard let privateKey = account.privKey?.data.bytes else {
+            throw LibAukError.keyDerivationError
+        }
+        
+        return try Secp256k1.Signing.PrivateKey(rawRepresentation: privateKey)
+    }
+    
     static func ethereumPrivateKey(mnemonic: BIP39Mnemonic, passphrase: String = "") throws -> EthereumPrivateKey {
         let masterKey = try HDKey(seed: mnemonic.seedHex(passphrase: ""))
         let derivationPath = try BIP32Path(string: Constant.ethDerivationPath)
