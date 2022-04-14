@@ -10,6 +10,7 @@ import Combine
 import LibWally
 import Web3
 import KukaiCoreSwift
+import Base58Swift
 
 public protocol SecureStorageProtocol {
     func createKey(name: String) -> AnyPublisher<Void, Error>
@@ -17,6 +18,8 @@ public protocol SecureStorageProtocol {
     func isWalletCreated() -> AnyPublisher<Bool, Error>
     func getName() -> String?
     func updateName(name: String) -> AnyPublisher<Void, Error>
+    func getAccountDID() -> AnyPublisher<String, Error>
+    func getAccountDIDSignature(message: String) -> AnyPublisher<String, Error>
     func getETHAddress() -> String?
     func sign(message: Bytes) -> AnyPublisher<(v: UInt, r: Bytes, s: Bytes), Error>
     func signTransaction(transaction: EthereumTransaction, chainId: EthereumQuantity) -> AnyPublisher<EthereumSignedTransaction, Error>
@@ -129,6 +132,53 @@ class SecureStorage: SecureStorageProtocol {
 
             self.keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
             return ()
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    func getAccountDID() -> AnyPublisher<String, Error> {
+        Future<Seed, Error> { promise in
+            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                  let seed = try? Seed(urString: seedUR.utf8) else {
+                promise(.failure(LibAukError.emptyKey))
+                return
+            }
+            
+            promise(.success(seed))
+        }
+        .compactMap {
+            Keys.mnemonic($0.data)
+        }
+        .tryMap { (mnemonic) in
+            let privateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic)
+            // Multicodec encoded with prefix 0xe7            
+            
+            var bytes: [UInt8] = [231, 1]
+            bytes.append(contentsOf: privateKey.publicKey.rawRepresentation.bytes)
+            let did = "did:key:z\(Base58.base58Encode(bytes))"
+
+            return did
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    func getAccountDIDSignature(message: String) -> AnyPublisher<String, Error> {
+        Future<Seed, Error> { promise in
+            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                  let seed = try? Seed(urString: seedUR.utf8) else {
+                promise(.failure(LibAukError.emptyKey))
+                return
+            }
+            
+            promise(.success(seed))
+        }
+        .compactMap {
+            Keys.mnemonic($0.data)
+        }
+        .tryMap { (mnemonic) in
+            let privateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic)
+            
+            return try privateKey.signature(for: message.utf8).derRepresentation.hexString
         }
         .eraseToAnyPublisher()
     }
