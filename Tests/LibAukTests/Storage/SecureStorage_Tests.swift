@@ -161,7 +161,7 @@ class SecureStorage_Tests: XCTestCase {
                 }
 
             }, receiveValue: { (did) in
-                XCTAssertEqual(did, "did:key:zQ3shju6YhWXKdxGskg7UeBN8vGs5QMmW7J7pxUzrAoEY3bLG")
+                XCTAssertEqual(did, "did:key:zQ3shUnBWE7Dkskaozsnzsb78kVcgQFbtXf7zdCCDN3qepBGL")
             })
             .store(in: &cancelBag)
 
@@ -186,7 +186,7 @@ class SecureStorage_Tests: XCTestCase {
                 }
 
             }, receiveValue: { (signature) in
-                XCTAssertEqual(signature, "304402206f7914881a66a5692a2ebef505eb7d85ac377e6b57152bc5b908510191aaeead022072fb561b1e7324548df16f38c11326b951fa9f7f2f936caf6f7a2fc53a9aebcf")
+                XCTAssertEqual(signature, "3045022100bcab09830ca590e641db881d9642ea2372cecedc1a37647e9d6ab8365521b7c0022041cba853b76596a64baf909aa311a18ae4d79c88aec15a080a897e3266e44aa2")
             })
             .store(in: &cancelBag)
 
