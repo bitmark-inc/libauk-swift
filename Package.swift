@@ -28,6 +28,7 @@ let package = Package(
             name: "LibAuk",
             dependencies: [
                 .target(name: "LibWally"),
+                .target(name: "SSKR"),
                 .product(name: "Web3", package: "Web3"),
                 .product(name: "URKit", package: "URKit"),
                 .product(name: "KukaiCoreSwift", package: "KukaiCoreSwift"),
@@ -39,7 +40,10 @@ let package = Package(
             dependencies: ["LibAuk"]),
         .binaryTarget(
             name: "LibWally",
-            path: "Frameworks/LibWally.xcframework")
+            path: "Frameworks/LibWally.xcframework"),
+        .binaryTarget(
+                name: "SSKR",
+                path: "Frameworks/SSKR.xcframework")
     ],
     swiftLanguageVersions: [.v5]
 )
