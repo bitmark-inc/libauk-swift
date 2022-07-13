@@ -21,7 +21,7 @@ public class Seed: Codable {
     
     func cbor(nameLimit: Int? = nil, noteLimit: Int? = nil) -> CBOR {
         var a: [OrderedMapEntry] = [
-            .init(key: 1, value: CBOR.byteString(data.bytes))
+            .init(key: 1, value: CBOR.data(data))
         ]
         
         if let creationDate = creationDate {
@@ -56,7 +56,7 @@ public class Seed: Codable {
     }
 
     convenience init(cborData: Data) throws {
-        guard let cbor = try CBOR.decode(cborData.bytes) else {
+        guard let cbor = try? CBOR(cborData) else {
             throw LibAukError.other(reason: "ur:crypto-seed: Invalid CBOR.")
         }
         try self.init(cbor: cbor)
@@ -66,10 +66,9 @@ public class Seed: Codable {
         guard case let CBOR.map(pairs) = cbor else {
             throw LibAukError.other(reason: "ur:crypto-seed: CBOR doesn't contain a map.")
         }
-        guard let dataItem = pairs[1], case let CBOR.byteString(bytes) = dataItem else {
+        guard let dataItem = pairs[1], case let CBOR.data(data) = dataItem else {
             throw LibAukError.other(reason: "ur:crypto-seed: CBOR doesn't contain data field.")
         }
-        let data = Data(bytes)
         
         let creationDate: Date?
         if let dateItem = pairs[2] {
