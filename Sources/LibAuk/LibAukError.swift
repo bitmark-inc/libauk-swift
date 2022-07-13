@@ -14,6 +14,8 @@ public enum LibAukError: Error {
     case emptyKey
     case keyCreationExistingError(key: String)
     case keyDerivationError
+    case shardCreationError
+    case shardInvalidError
     case other(reason: String)
 }
 
@@ -44,6 +46,10 @@ extension LibAukError: LocalizedError {
             return "create key error: key exists"
         case .keyDerivationError:
             return "key derivation error"
+        case .shardCreationError:
+            return "shard creation error";
+        case .shardInvalidError:
+            return "shard invalid error";
         case .other(let reason):
             return reason
         }

@@ -21,5 +21,9 @@ struct Constant {
 
         static let seed = "seed"
         static let ethInfoKey = "ethInfo"
+
+        static func shardKey(type: ShardType) -> String {
+            "shards.\(type.rawValue)"
+        }
     }
 }

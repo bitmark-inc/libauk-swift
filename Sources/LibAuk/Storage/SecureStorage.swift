@@ -12,10 +12,13 @@ import Web3
 import KukaiCoreSwift
 import Base58Swift
 import CryptoKit
+import SSKR
+import BCFoundation
 
 public protocol SecureStorageProtocol {
     func createKey(name: String) -> AnyPublisher<Void, Error>
     func importKey(words: [String], name: String, creationDate: Date?) -> AnyPublisher<Void, Error>
+    func restoreByBytewordShards(shares: [String], name: String, creationDate: Date?) -> AnyPublisher<Void, Error>
     func isWalletCreated() -> AnyPublisher<Bool, Error>
     func getName() -> String?
     func updateName(name: String) -> AnyPublisher<Void, Error>
@@ -31,11 +34,18 @@ public protocol SecureStorageProtocol {
     func exportSeed() -> AnyPublisher<Seed, Error>
     func exportMnemonicWords() -> AnyPublisher<[String], Error>
     func removeKeys() -> AnyPublisher<Void, Error>
+    func setupSSKR() -> AnyPublisher<Void, Error>
+    func getShard(type: ShardType) -> AnyPublisher<String, Error>
+    func removeShard(type: ShardType) -> AnyPublisher<Void, Error>
 }
 
 class SecureStorage: SecureStorageProtocol {
     
     private let keychain: KeychainProtocol
+
+    private let groupThreshold: Int = 1
+    private let numberOfShardsEachGroup: UInt8 = 3
+    private let shardsCombinationThreshold: UInt8 = 2
     
     init(keychain: KeychainProtocol = Keychain()) {
         self.keychain = keychain
@@ -348,12 +358,115 @@ class SecureStorage: SecureStorageProtocol {
             self.keychain.remove(key: Constant.KeychainKey.seed, isSync: true)
             self.keychain.remove(key: Constant.KeychainKey.ethInfoKey, isSync: true)
 
+            ShardType.allCases.forEach { type in
+                self.keychain.remove(key: Constant.KeychainKey.shardKey(type: type), isSync: type.isSync)
+            }
+
             promise(.success(()))
         }
         .eraseToAnyPublisher()
     }
 
-    
+    func setupSSKR() -> AnyPublisher<Void, Error> {
+        Future<Data, Error> { promise in
+            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                  let seed = try? Seed(urString: seedUR.utf8) else {
+                promise(.failure(LibAukError.emptyKey))
+                return
+            }
+
+            promise(.success(seed.data))
+        }
+        .tryMap { [unowned self]  data -> [[SSKRShare]] in
+            return try SSKROperator.generate(
+                data: data,
+                groupThreshold: self.groupThreshold,
+                numberOfShardsInGroup: self.numberOfShardsEachGroup,
+                shardsCombinationThreshold: self.shardsCombinationThreshold)
+        }
+        .tryMap { (groupsShares) -> [ShardType: Data] in
+            guard let shares = groupsShares.first, shares.count == ShardType.allCases.count else {
+                throw LibAukError.shardCreationError
+            }
+
+            var result = [ShardType: Data]()
+
+            for (index, share) in shares.enumerated() {
+                if let type = ShardType(rawValue: index) {
+                    result[type] = Data(share.data)
+                } else {
+                    throw LibAukError.shardCreationError
+                }
+            }
+
+            return result
+        }
+        .map { [unowned self] (shardDict) in
+            for (type, shardData) in shardDict {
+                self.keychain.set(shardData,
+                                  forKey: Constant.KeychainKey.shardKey(type: type),
+                                  isSync: type.isSync)
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+
+    func getShard(type: ShardType) -> AnyPublisher<String, Error> {
+        Future<String, Error> { promise in
+            guard let data = self.keychain.getData(Constant.KeychainKey.shardKey(type: type), isSync: type.isSync) else {
+                promise(.failure(LibAukError.other(reason: "Couldn't load shards from Keychain")))
+                return
+            }
+
+            let share = SSKRShare(data: data.bytes)
+            promise(.success(share.bytewords(style: .standard)))
+        }
+        .eraseToAnyPublisher()
+    }
+
+    func removeShard(type: ShardType) -> AnyPublisher<Void, Error> {
+        Future<Void, Error> { promise in
+            let result = self.keychain.remove(key: Constant.KeychainKey.shardKey(type: type), isSync: type.isSync)
+
+            if (result) {
+                promise(.success(()))
+            } else {
+                promise(.failure(LibAukError.other(reason: "Could remove shard")))
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+
+    func restoreByBytewordShards(shares: [String], name: String, creationDate: Date?) -> AnyPublisher<Void, Error> {
+        Just(shares)
+            .setFailureType(to: Error.self)
+            .tryMap { byteWordShares in
+                try byteWordShares.map {
+                    let shard = try SSKRShare(bytewords: $0)
+                    if let shard = shard {
+                        return shard
+                    } else {
+                        throw LibAukError.shardInvalidError
+                    }
+                }
+            }
+            .tryMap {
+                try SSKROperator.combine(shares: $0)
+            }
+            .tryMap { [unowned self] (seedData) -> Seed in
+                let seed = Seed(data: seedData, name: name, creationDate: creationDate)
+                self.keychain.set(seed.urString.utf8, forKey: Constant.KeychainKey.seed, isSync: true)
+                return seed
+            }
+            .compactMap { seed in
+                Keys.mnemonic(seed.data)
+            }
+            .tryMap { [unowned self] in
+                try self.saveKeyInfo(mnemonic: $0)
+            }
+            .eraseToAnyPublisher()
+    }
+
     func saveKeyInfo(mnemonic: BIP39Mnemonic) throws {
         let ethPrivateKey = try Keys.ethereumPrivateKey(mnemonic: mnemonic)
         
