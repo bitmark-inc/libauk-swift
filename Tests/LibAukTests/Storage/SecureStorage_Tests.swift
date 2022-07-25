@@ -106,7 +106,7 @@ class SecureStorage_Tests: XCTestCase {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
         let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date())
         let seedData = seed.urString.utf8
-        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: false)
         
         let receivedExpectation = expectation(description: "all values received")
 
@@ -131,7 +131,7 @@ class SecureStorage_Tests: XCTestCase {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
         let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date())
         let seedData = seed.urString.utf8
-        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: false)
         
         XCTAssertEqual(storage.getName(), "account1")
     }
@@ -147,7 +147,7 @@ class SecureStorage_Tests: XCTestCase {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
         let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date())
         let seedData = seed.urString.utf8
-        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: false)
         
         let receivedExpectation = expectation(description: "all values received")
         
@@ -172,7 +172,7 @@ class SecureStorage_Tests: XCTestCase {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
         let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date())
         let seedData = seed.urString.utf8
-        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: false)
         
         let receivedExpectation = expectation(description: "all values received")
         
@@ -197,7 +197,7 @@ class SecureStorage_Tests: XCTestCase {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
         let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date())
         let seedData = seed.urString.utf8
-        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: false)
         
         let message = "hello"
         let receivedExpectation = expectation(description: "all values received")
@@ -225,7 +225,7 @@ class SecureStorage_Tests: XCTestCase {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
         let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date())
         let seedData = seed.urString.utf8
-        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: false)
         
         let tx = EthereumTransaction(
             nonce: 1,
@@ -262,11 +262,11 @@ class SecureStorage_Tests: XCTestCase {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
         let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date(timeIntervalSince1970: 1628656699))
         let seedData = seed.urString.utf8
-        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: false)
         
         let keyInfo = KeyInfo(fingerprint: "0a3df912", ethAddress: "0xA00cbE6a45102135A210F231901faA6c05D51465", creationDate: Date(timeIntervalSince1970: 1628656699))
         let keyInfoData = try JSONEncoder().encode(keyInfo)
-        keychain.set(keyInfoData, forKey: Constant.KeychainKey.ethInfoKey, isSync: true)
+        keychain.set(keyInfoData, forKey: Constant.KeychainKey.ethInfoKey, isSync: false)
         
         let receivedExpectation = expectation(description: "all values received")
         
@@ -291,11 +291,11 @@ class SecureStorage_Tests: XCTestCase {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
         let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date(timeIntervalSince1970: 1628656699))
         let seedData = seed.urString.utf8
-        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: false)
         
         let keyInfo = KeyInfo(fingerprint: "0a3df912", ethAddress: "0xA00cbE6a45102135A210F231901faA6c05D51465", creationDate: Date(timeIntervalSince1970: 1628656699))
         let keyInfoData = try JSONEncoder().encode(keyInfo)
-        keychain.set(keyInfoData, forKey: Constant.KeychainKey.ethInfoKey, isSync: true)
+        keychain.set(keyInfoData, forKey: Constant.KeychainKey.ethInfoKey, isSync: false)
         
         let receivedExpectation = expectation(description: "all values received")
         
@@ -320,11 +320,11 @@ class SecureStorage_Tests: XCTestCase {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
         let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date(timeIntervalSince1970: 1628656699))
         let seedData = seed.urString.utf8
-        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: false)
         
         let keyInfo = KeyInfo(fingerprint: "0a3df912", ethAddress: "0xA00cbE6a45102135A210F231901faA6c05D51465", creationDate: Date(timeIntervalSince1970: 1628656699))
         let keyInfoData = try JSONEncoder().encode(keyInfo)
-        keychain.set(keyInfoData, forKey: Constant.KeychainKey.ethInfoKey, isSync: true)
+        keychain.set(keyInfoData, forKey: Constant.KeychainKey.ethInfoKey, isSync: false)
         
         let receivedExpectation = expectation(description: "all values received")
         
@@ -351,7 +351,7 @@ class SecureStorage_Tests: XCTestCase {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
         let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date())
         let seedData = seed.urString.utf8
-        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: false)
         
         let receivedExpectation = expectation(description: "all values received")
 
@@ -376,11 +376,11 @@ class SecureStorage_Tests: XCTestCase {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
         let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date(timeIntervalSince1970: 1628656699))
         let seedData = seed.urString.utf8
-        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: false)
         
         let keyInfo = KeyInfo(fingerprint: "0a3df912", ethAddress: "0xA00cbE6a45102135A210F231901faA6c05D51465", creationDate: Date(timeIntervalSince1970: 1628656699))
         let keyInfoData = try JSONEncoder().encode(keyInfo)
-        keychain.set(keyInfoData, forKey: Constant.KeychainKey.ethInfoKey, isSync: true)
+        keychain.set(keyInfoData, forKey: Constant.KeychainKey.ethInfoKey, isSync: false)
         
         let receivedExpectation = expectation(description: "all values received")
 
