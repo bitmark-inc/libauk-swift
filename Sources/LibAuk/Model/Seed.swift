@@ -43,7 +43,7 @@ public class Seed: Codable {
         UREncoder.encode(ur)
     }
     
-    convenience init(urString: String) throws {
+    public convenience init(urString: String) throws {
         let ur = try URDecoder.decode(urString)
         try self.init(ur: ur)
     }

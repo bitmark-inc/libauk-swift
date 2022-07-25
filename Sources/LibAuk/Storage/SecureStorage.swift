@@ -34,6 +34,9 @@ public protocol SecureStorageProtocol {
     func setupSSKR() -> AnyPublisher<Void, Error>
     func getShard(type: ShardType) -> AnyPublisher<String, Error>
     func removeShard(type: ShardType) -> AnyPublisher<Void, Error>
+    // -- Migration
+    // migration from remote keychain to local keychain
+    func migrateV0ToV1() -> AnyPublisher<Void, Error>
 }
 
 class SecureStorage: SecureStorageProtocol {
@@ -50,7 +53,7 @@ class SecureStorage: SecureStorageProtocol {
     
     func createKey(name: String) -> AnyPublisher<Void, Error> {
         Future<Seed, Error> { promise in
-            guard self.keychain.getData(Constant.KeychainKey.ethInfoKey, isSync: true) == nil else {
+            guard self.keychain.getData(Constant.KeychainKey.ethInfoKey, isSync: false) == nil else {
                 promise(.failure(LibAukError.keyCreationExistingError(key: "createETHKey")))
                 return
             }
@@ -78,7 +81,7 @@ class SecureStorage: SecureStorageProtocol {
     
     func importKey(words: [String], name: String, creationDate: Date?) -> AnyPublisher<Void, Error> {
         Future<Seed, Error> { promise in
-            guard self.keychain.getData(Constant.KeychainKey.ethInfoKey, isSync: true) == nil else {
+            guard self.keychain.getData(Constant.KeychainKey.ethInfoKey, isSync: false) == nil else {
                 promise(.failure(LibAukError.keyCreationExistingError(key: "createETHKey")))
                 return
             }
@@ -87,7 +90,7 @@ class SecureStorage: SecureStorageProtocol {
                 let seed = Seed(data: entropy, name: name, creationDate: creationDate ?? Date())
                 let seedData = seed.urString.utf8
 
-                self.keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+                self.keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: false)
                 promise(.success(seed))
             } else {
                 promise(.failure(LibAukError.invalidMnemonicError))
@@ -104,7 +107,7 @@ class SecureStorage: SecureStorageProtocol {
     
     func isWalletCreated() -> AnyPublisher<Bool, Error> {
         Future<Bool, Error> { promise in
-            guard let infoData = self.keychain.getData(Constant.KeychainKey.ethInfoKey, isSync: true),
+            guard let infoData = self.keychain.getData(Constant.KeychainKey.ethInfoKey, isSync: false),
                   (try? JSONDecoder().decode(KeyInfo.self, from: infoData)) != nil else {
                 promise(.success(false))
                 return
@@ -116,7 +119,7 @@ class SecureStorage: SecureStorageProtocol {
     }
     
     func getName() -> String? {
-        guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+        guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: false),
               let seed = try? Seed(urString: seedUR.utf8) else {
             return ""
         }
@@ -126,7 +129,7 @@ class SecureStorage: SecureStorageProtocol {
     
     func updateName(name: String) -> AnyPublisher<Void, Error> {
         Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: false),
                   let seed = try? Seed(urString: seedUR.utf8) else {
                 promise(.failure(LibAukError.emptyKey))
                 return
@@ -140,7 +143,7 @@ class SecureStorage: SecureStorageProtocol {
         .map { seed in
             let seedData = seed.urString.utf8
 
-            self.keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+            self.keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: false)
             return ()
         }
         .eraseToAnyPublisher()
@@ -148,7 +151,7 @@ class SecureStorage: SecureStorageProtocol {
     
     func getAccountDID() -> AnyPublisher<String, Error> {
         Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: false),
                   let seed = try? Seed(urString: seedUR.utf8) else {
                 promise(.failure(LibAukError.emptyKey))
                 return
@@ -174,7 +177,7 @@ class SecureStorage: SecureStorageProtocol {
     
     func getAccountDIDSignature(message: String) -> AnyPublisher<String, Error> {
         Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: false),
                   let seed = try? Seed(urString: seedUR.utf8) else {
                 promise(.failure(LibAukError.emptyKey))
                 return
@@ -194,7 +197,7 @@ class SecureStorage: SecureStorageProtocol {
     }
     
     func getETHAddress() -> String? {
-        guard let infoData = self.keychain.getData(Constant.KeychainKey.ethInfoKey, isSync: true),
+        guard let infoData = self.keychain.getData(Constant.KeychainKey.ethInfoKey, isSync: false),
               let keyInfo = try? JSONDecoder().decode(KeyInfo.self, from: infoData) else {
             return nil
         }
@@ -203,7 +206,7 @@ class SecureStorage: SecureStorageProtocol {
     
     func sign(message: Bytes) -> AnyPublisher<(v: UInt, r: Bytes, s: Bytes), Error> {
         Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: false),
                   let seed = try? Seed(urString: seedUR.utf8) else {
                 promise(.failure(LibAukError.emptyKey))
                 return
@@ -223,7 +226,7 @@ class SecureStorage: SecureStorageProtocol {
     
     func signTransaction(transaction: EthereumTransaction, chainId: EthereumQuantity) -> AnyPublisher<EthereumSignedTransaction, Error> {
         Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: false),
                   let seed = try? Seed(urString: seedUR.utf8) else {
                 promise(.failure(LibAukError.emptyKey))
                 return
@@ -244,7 +247,7 @@ class SecureStorage: SecureStorageProtocol {
     
     func getTezosWallet() -> AnyPublisher<Wallet, Error> {
         Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: false),
                   let seed = try? Seed(urString: seedUR.utf8) else {
                 promise(.failure(LibAukError.emptyKey))
                 return
@@ -263,7 +266,7 @@ class SecureStorage: SecureStorageProtocol {
     
     func getBitmarkAddress() -> AnyPublisher<String, Error> {
         Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: false),
                   let seed = try? Seed(urString: seedUR.utf8) else {
                 promise(.failure(LibAukError.emptyKey))
                 return
@@ -282,7 +285,7 @@ class SecureStorage: SecureStorageProtocol {
     
     func exportSeed() -> AnyPublisher<Seed, Error> {
         Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: false),
                   let seed = try? Seed(urString: seedUR.utf8) else {
                 promise(.failure(LibAukError.emptyKey))
                 return
@@ -304,14 +307,14 @@ class SecureStorage: SecureStorageProtocol {
     
     func removeKeys() -> AnyPublisher<Void, Error> {
         Future<Void, Error> { promise in
-            guard self.keychain.getData(Constant.KeychainKey.seed, isSync: true) != nil,
-                  self.keychain.getData(Constant.KeychainKey.ethInfoKey, isSync: true) != nil else {
+            guard self.keychain.getData(Constant.KeychainKey.seed, isSync: false) != nil,
+                  self.keychain.getData(Constant.KeychainKey.ethInfoKey, isSync: false) != nil else {
                 promise(.failure(LibAukError.emptyKey))
                 return
             }
             
-            self.keychain.remove(key: Constant.KeychainKey.seed, isSync: true)
-            self.keychain.remove(key: Constant.KeychainKey.ethInfoKey, isSync: true)
+            self.keychain.remove(key: Constant.KeychainKey.seed, isSync: false)
+            self.keychain.remove(key: Constant.KeychainKey.ethInfoKey, isSync: false)
 
             ShardType.allCases.forEach { type in
                 self.keychain.remove(key: Constant.KeychainKey.shardKey(type: type), isSync: type.isSync)
@@ -431,5 +434,26 @@ class SecureStorage: SecureStorageProtocol {
 
         let keyInfoData = try JSONEncoder().encode(keyInfo)
         keychain.set(keyInfoData, forKey: Constant.KeychainKey.ethInfoKey, isSync: true)
+    }
+
+    func migrateV0ToV1() -> AnyPublisher<Void, Error> {
+        Future<Void, Error> { [keychain] (promise) in
+            let ethInfo = keychain.getData(Constant.KeychainKey.ethInfoKey, isSync: true)
+            let seedData = keychain.getData(Constant.KeychainKey.seed, isSync: true)
+
+            // migrate
+            if let ethInfo = ethInfo, let seedData = seedData,
+               keychain.set(ethInfo, forKey: Constant.KeychainKey.ethInfoKey, isSync: false),
+               keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: false) {
+
+                // delete after moving
+                keychain.remove(key: Constant.KeychainKey.ethInfoKey, isSync: true)
+                keychain.remove(key: Constant.KeychainKey.seed, isSync: true)
+                promise(.success(()))
+            } else {
+                promise(.failure(LibAukError.migrateV0ToV1Error(reason: "ethInfo: \(ethInfo != nil) - seedData: \(seedData != nil)")))
+            }
+        }
+        .eraseToAnyPublisher()
     }
 }

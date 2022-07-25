@@ -16,6 +16,7 @@ public enum LibAukError: Error {
     case keyDerivationError
     case shardCreationError
     case shardInvalidError
+    case migrateV0ToV1Error(reason: String)
     case other(reason: String)
 }
 
@@ -50,6 +51,8 @@ extension LibAukError: LocalizedError {
             return "shard creation error";
         case .shardInvalidError:
             return "shard invalid error";
+        case .migrateV0ToV1Error(let reason):
+            return "migrateV0ToV1Error \(reason)";
         case .other(let reason):
             return reason
         }
