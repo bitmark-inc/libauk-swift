@@ -40,9 +40,9 @@ class SecureStorage_Tests: XCTestCase {
                 switch completion {
                 case .finished:
                     XCTAssertNotNil(self.keychain.getData(Constant.KeychainKey.seed))
-                    XCTAssertTrue(self.keychain.getSync(Constant.KeychainKey.seed)!)
+                    XCTAssertFalse(self.keychain.getSync(Constant.KeychainKey.seed)!)
                     XCTAssertNotNil(self.keychain.getData(Constant.KeychainKey.ethInfoKey))
-                    XCTAssertTrue(self.keychain.getSync(Constant.KeychainKey.ethInfoKey)!)
+                    XCTAssertFalse(self.keychain.getSync(Constant.KeychainKey.ethInfoKey)!)
 
                     receivedExpectation.fulfill()
                 case .failure(let error):
@@ -64,9 +64,9 @@ class SecureStorage_Tests: XCTestCase {
                 switch completion {
                 case .finished:
                     XCTAssertNotNil(self.keychain.getData(Constant.KeychainKey.seed))
-                    XCTAssertTrue(self.keychain.getSync(Constant.KeychainKey.seed)!)
+                    XCTAssertFalse(self.keychain.getSync(Constant.KeychainKey.seed)!)
                     XCTAssertNotNil(self.keychain.getData(Constant.KeychainKey.ethInfoKey))
-                    XCTAssertTrue(self.keychain.getSync(Constant.KeychainKey.ethInfoKey)!)
+                    XCTAssertFalse(self.keychain.getSync(Constant.KeychainKey.ethInfoKey)!)
 
                     receivedExpectation.fulfill()
                 case .failure(let error):

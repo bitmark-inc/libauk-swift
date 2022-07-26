@@ -29,4 +29,8 @@ public class LibAuk {
         let keychain = Keychain(prefix: Constant.KeychainKey.personaPrefix(at: uuid))
         return SecureStorage(keychain: keychain)
     }
+
+    public func general() -> GeneralStorageProtocol {
+        return GeneralStorage()
+    }
 }
