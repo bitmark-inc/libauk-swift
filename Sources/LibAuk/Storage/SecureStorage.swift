@@ -11,6 +11,7 @@ import LibWally
 import Web3
 import KukaiCoreSwift
 import Base58Swift
+import CryptoKit
 
 public protocol SecureStorageProtocol {
     func createKey(name: String) -> AnyPublisher<Void, Error>
@@ -23,6 +24,8 @@ public protocol SecureStorageProtocol {
     func getETHAddress() -> String?
     func sign(message: Bytes) -> AnyPublisher<(v: UInt, r: Bytes, s: Bytes), Error>
     func signTransaction(transaction: EthereumTransaction, chainId: EthereumQuantity) -> AnyPublisher<EthereumSignedTransaction, Error>
+    func encryptFile(inputPath: String, outputPath: String) -> AnyPublisher<String, Error>
+    func decryptFile(inputPath: String, outputPath: String) -> AnyPublisher<String, Error>
     func getTezosWallet() -> AnyPublisher<Wallet, Error>
     func getBitmarkAddress() -> AnyPublisher<String, Error>
     func exportSeed() -> AnyPublisher<Seed, Error>
@@ -231,7 +234,49 @@ class SecureStorage: SecureStorageProtocol {
         }
         .eraseToAnyPublisher()
     }
-    
+
+    private func getEncryptKey() -> AnyPublisher<SymmetricKey, Error> {
+        return Future<Seed, Error> { promise in
+            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                  let seed = try? Seed(urString: seedUR.utf8) else {
+                promise(.failure(LibAukError.emptyKey))
+                return
+            }
+            promise(.success(seed))
+        }
+        .compactMap {
+            Keys.mnemonic($0.data)
+        }
+        .tryMap({ (mnemonic) in
+            let privateKey = try Keys.encryptionPrivateKey(mnemonic: mnemonic)
+            return SymmetricKey(data: privateKey.rawRepresentation)
+        })
+        .eraseToAnyPublisher()
+    }
+
+    func encryptFile(inputPath: String, outputPath: String) -> AnyPublisher<String, Error> {
+        return getEncryptKey().tryMap({ key in
+            let url = URL(fileURLWithPath: inputPath)
+            let data = try Data(contentsOf: url)
+            let seal = try ChaChaPoly.seal(data, using: key, nonce: ChaChaPoly.Nonce())
+            try seal.combined.write(to: URL(fileURLWithPath: outputPath))
+            return outputPath
+        })
+        .eraseToAnyPublisher()
+    }
+
+    func decryptFile(inputPath: String, outputPath: String) -> AnyPublisher<String, Error> {
+        return getEncryptKey().tryMap({ key in
+            let url = URL(fileURLWithPath: inputPath)
+            let data = try Data(contentsOf: url)
+            let box = try ChaChaPoly.SealedBox(combined: data)
+            let decrypted = try ChaChaPoly.open(box, using: key)
+            try decrypted.write(to: URL(fileURLWithPath: outputPath))
+            return outputPath
+        })
+        .eraseToAnyPublisher()
+    }
+
     func getTezosWallet() -> AnyPublisher<Wallet, Error> {
         Future<Seed, Error> { promise in
             guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
