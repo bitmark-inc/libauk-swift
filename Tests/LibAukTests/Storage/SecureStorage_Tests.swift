@@ -202,7 +202,7 @@ class SecureStorage_Tests: XCTestCase {
         let message = "hello"
         let receivedExpectation = expectation(description: "all values received")
         
-        storage.sign(message: message.bytes)
+        storage.ethSign(message: message.bytes)
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished:
@@ -236,7 +236,7 @@ class SecureStorage_Tests: XCTestCase {
         )
         let receivedExpectation = expectation(description: "all values received")
         
-        storage.signTransaction(transaction: tx, chainId: 0)
+        storage.ethSignTransaction(transaction: tx, chainId: 0)
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished:

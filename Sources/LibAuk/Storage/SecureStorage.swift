@@ -12,6 +12,7 @@ import Web3
 import KukaiCoreSwift
 import Base58Swift
 import CryptoKit
+import Sodium
 
 public protocol SecureStorageProtocol {
     func createKey(name: String) -> AnyPublisher<Void, Error>
@@ -22,11 +23,13 @@ public protocol SecureStorageProtocol {
     func getAccountDID() -> AnyPublisher<String, Error>
     func getAccountDIDSignature(message: String) -> AnyPublisher<String, Error>
     func getETHAddress() -> String?
-    func sign(message: Bytes) -> AnyPublisher<(v: UInt, r: Bytes, s: Bytes), Error>
-    func signTransaction(transaction: EthereumTransaction, chainId: EthereumQuantity) -> AnyPublisher<EthereumSignedTransaction, Error>
+    func ethSign(message: Bytes) -> AnyPublisher<(v: UInt, r: Bytes, s: Bytes), Error>
+    func ethSignTransaction(transaction: EthereumTransaction, chainId: EthereumQuantity) -> AnyPublisher<EthereumSignedTransaction, Error>
     func encryptFile(inputPath: String, outputPath: String) -> AnyPublisher<String, Error>
     func decryptFile(inputPath: String, outputPath: String) -> AnyPublisher<String, Error>
-    func getTezosWallet() -> AnyPublisher<Wallet, Error>
+    func getTezosPublicKey() -> AnyPublisher<String, Error>
+    func tezosSign(message: Data) -> AnyPublisher<[UInt8], Error>
+    func tezosSignTransaction(forgedHex: String) -> AnyPublisher<[UInt8], Error>
     func getBitmarkAddress() -> AnyPublisher<String, Error>
     func exportSeed() -> AnyPublisher<Seed, Error>
     func exportMnemonicWords() -> AnyPublisher<[String], Error>
@@ -194,7 +197,7 @@ class SecureStorage: SecureStorageProtocol {
         return keyInfo.ethAddress
     }
     
-    func sign(message: Bytes) -> AnyPublisher<(v: UInt, r: Bytes, s: Bytes), Error> {
+    func ethSign(message: Bytes) -> AnyPublisher<(v: UInt, r: Bytes, s: Bytes), Error> {
         Future<Seed, Error> { promise in
             guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
                   let seed = try? Seed(urString: seedUR.utf8) else {
@@ -214,7 +217,7 @@ class SecureStorage: SecureStorageProtocol {
         .eraseToAnyPublisher()
     }
     
-    func signTransaction(transaction: EthereumTransaction, chainId: EthereumQuantity) -> AnyPublisher<EthereumSignedTransaction, Error> {
+    func ethSignTransaction(transaction: EthereumTransaction, chainId: EthereumQuantity) -> AnyPublisher<EthereumSignedTransaction, Error> {
         Future<Seed, Error> { promise in
             guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
                   let seed = try? Seed(urString: seedUR.utf8) else {
@@ -276,25 +279,36 @@ class SecureStorage: SecureStorageProtocol {
         })
         .eraseToAnyPublisher()
     }
-
-    func getTezosWallet() -> AnyPublisher<Wallet, Error> {
-        Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
-                  let seed = try? Seed(urString: seedUR.utf8) else {
-                promise(.failure(LibAukError.emptyKey))
-                return
+    
+    func getTezosPublicKey() -> AnyPublisher<String, Error> {
+        getTezosWallet()
+            .compactMap {
+                $0.publicKeyBase58encoded()
             }
-            
-            promise(.success(seed))
-        }
-        .compactMap {
-            Keys.mnemonic($0.data)
-        }
-        .compactMap {
-            Keys.tezosWallet(mnemonic: $0)
-        }
-        .eraseToAnyPublisher()
+            .eraseToAnyPublisher()
     }
+    
+    func tezosSign(message: Data) -> AnyPublisher<[UInt8], Error> {
+        getTezosWallet()
+            .compactMap { wallet in
+                let messageHash = Sodium.shared.genericHash.hash(message: message.bytes, outputLength: 32) ?? []
+                let messageHashData = Data(bytes: messageHash, count: messageHash.count)
+
+                let signedData = wallet.privateKey.sign(digest: messageHashData, curve: .ed25519)
+                
+                return signedData?.bytes
+            }
+            .eraseToAnyPublisher()
+    }
+    
+    func tezosSignTransaction(forgedHex: String) -> AnyPublisher<[UInt8], Error> {
+        getTezosWallet()
+            .compactMap {
+                $0.sign(forgedHex)
+            }
+            .eraseToAnyPublisher()
+    }
+    
     
     func getBitmarkAddress() -> AnyPublisher<String, Error> {
         Future<Seed, Error> { promise in
@@ -363,5 +377,24 @@ class SecureStorage: SecureStorageProtocol {
 
         let keyInfoData = try JSONEncoder().encode(keyInfo)
         keychain.set(keyInfoData, forKey: Constant.KeychainKey.ethInfoKey, isSync: true)
+    }
+    
+    internal func getTezosWallet() -> AnyPublisher<HDWallet, Error> {
+        Future<Seed, Error> { promise in
+            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                  let seed = try? Seed(urString: seedUR.utf8) else {
+                promise(.failure(LibAukError.emptyKey))
+                return
+            }
+            
+            promise(.success(seed))
+        }
+        .compactMap {
+            Keys.mnemonic($0.data)
+        }
+        .compactMap {
+            Keys.tezosWallet(mnemonic: $0)
+        }
+        .eraseToAnyPublisher()
     }
 }
