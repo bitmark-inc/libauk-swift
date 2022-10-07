@@ -202,7 +202,7 @@ class SecureStorage_Tests: XCTestCase {
         let message = "hello"
         let receivedExpectation = expectation(description: "all values received")
         
-        storage.sign(message: message.bytes)
+        storage.ethSign(message: message.bytes)
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished:
@@ -236,7 +236,7 @@ class SecureStorage_Tests: XCTestCase {
         )
         let receivedExpectation = expectation(description: "all values received")
         
-        storage.signTransaction(transaction: tx, chainId: 0)
+        storage.ethSignTransaction(transaction: tx, chainId: 0)
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished:
@@ -264,10 +264,6 @@ class SecureStorage_Tests: XCTestCase {
         let seedData = seed.urString.utf8
         keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
         
-        let keyInfo = KeyInfo(fingerprint: "0a3df912", ethAddress: "0xA00cbE6a45102135A210F231901faA6c05D51465", creationDate: Date(timeIntervalSince1970: 1628656699))
-        let keyInfoData = try JSONEncoder().encode(keyInfo)
-        keychain.set(keyInfoData, forKey: Constant.KeychainKey.ethInfoKey, isSync: true)
-        
         let receivedExpectation = expectation(description: "all values received")
         
         storage.getTezosWallet()
@@ -281,6 +277,81 @@ class SecureStorage_Tests: XCTestCase {
 
             }, receiveValue: { wallet in
                 XCTAssertEqual(wallet.address, "tz1TK8o3WKrPLKGwMgsdn3duPtT9tJcdh3FQ")
+            })
+            .store(in: &cancelBag)
+
+        waitForExpectations(timeout: 1, handler: nil)
+    }
+    
+    func testGetTezosPublickeySuccessfully() throws {
+        let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
+        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date(timeIntervalSince1970: 1628656699))
+        let seedData = seed.urString.utf8
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        
+        let receivedExpectation = expectation(description: "all values received")
+        
+        storage.getTezosPublicKey()
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .finished:
+                    receivedExpectation.fulfill()
+                case .failure(let error):
+                    XCTFail("exportSeed failed \(error)")
+                }
+
+            }, receiveValue: { publickKey in
+                XCTAssertEqual(publickKey, "edpkuJKSkDoBpDs1aDtQWfBothZxpu6KxWG8gkB77TLxjJ344adoaP")
+            })
+            .store(in: &cancelBag)
+
+        waitForExpectations(timeout: 1, handler: nil)
+    }
+    
+    func testTezosSignMessageSuccessfully() throws {
+        let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
+        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date(timeIntervalSince1970: 1628656699))
+        let seedData = seed.urString.utf8
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        
+        let receivedExpectation = expectation(description: "all values received")
+        
+        storage.tezosSign(message: "hello".data(using: .utf8)!)
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .finished:
+                    receivedExpectation.fulfill()
+                case .failure(let error):
+                    XCTFail("exportSeed failed \(error)")
+                }
+
+            }, receiveValue: { data in
+                XCTAssertEqual(data.toHexString(), "fd778e710e90b554c7e6e74d34adc00f8804d3fe667b47de96f8c8a9ef1b5af7ffa80808a460ff8411558d1180f8aa6e905299a983c251c2d5a29750540a7f0e")
+            })
+            .store(in: &cancelBag)
+
+        waitForExpectations(timeout: 1, handler: nil)
+    }
+    
+    func testTezosSignTransactionSuccessfully() throws {
+        let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
+        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date(timeIntervalSince1970: 1628656699))
+        let seedData = seed.urString.utf8
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        
+        let receivedExpectation = expectation(description: "all values received")
+        
+        storage.tezosSignTransaction(forgedHex: "0xad059fe0310b029f")
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .finished:
+                    receivedExpectation.fulfill()
+                case .failure(let error):
+                    XCTFail("exportSeed failed \(error)")
+                }
+
+            }, receiveValue: { data in
+                XCTAssertEqual(data.toHexString(), "923fbff6073c4be53f2af62ff5dc35a9063a4272f70a306f1a3c2226ea9589997c41842c2b16945f86c7213d77c0d6e3a7605e03f90a28abe5e2b10a7a65e40e")
             })
             .store(in: &cancelBag)
 
