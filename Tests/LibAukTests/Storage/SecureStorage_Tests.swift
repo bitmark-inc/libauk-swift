@@ -136,6 +136,24 @@ class SecureStorage_Tests: XCTestCase {
         XCTAssertEqual(storage.getName(), "account1")
     }
     
+    func testGetNameWithOptionalCreationDateSuccessfully() throws {
+        let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
+        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: nil)
+        let seedData = seed.urString.utf8
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        
+        XCTAssertEqual(storage.getName(), "account1")
+    }
+    
+    func testGetNameWithEmptySuccessfully() throws {
+        let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
+        let seed = Seed(data: Keys.entropy(words)!, name: "", creationDate: Date())
+        let seedData = seed.urString.utf8
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        
+        XCTAssertEqual(storage.getName(), "")
+    }
+    
     func testGetETHAddressSuccessfully() throws {
         let mnemomic = try BIP39Mnemonic(words: "daring mix cradle palm crowd sea observe whisper rubber either uncle oak")
         try storage.saveKeyInfo(mnemonic: mnemomic)
