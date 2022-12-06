@@ -30,7 +30,6 @@ public protocol SecureStorageProtocol {
     func getTezosPublicKey() -> AnyPublisher<String, Error>
     func tezosSign(message: Data) -> AnyPublisher<[UInt8], Error>
     func tezosSignTransaction(forgedHex: String) -> AnyPublisher<[UInt8], Error>
-    func getBitmarkAddress() -> AnyPublisher<String, Error>
     func exportSeed() -> AnyPublisher<Seed, Error>
     func exportMnemonicWords() -> AnyPublisher<[String], Error>
     func removeKeys() -> AnyPublisher<Void, Error>
@@ -309,25 +308,6 @@ class SecureStorage: SecureStorageProtocol {
             .eraseToAnyPublisher()
     }
     
-    
-    func getBitmarkAddress() -> AnyPublisher<String, Error> {
-        Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
-                  let seed = try? Seed(urString: seedUR.utf8) else {
-                promise(.failure(LibAukError.emptyKey))
-                return
-            }
-            
-            promise(.success(seed))
-        }
-        .compactMap {
-            Keys.mnemonic($0.data)
-        }
-        .tryMap {
-            try Keys.bitmarkPrivateKey(mnemonic: $0)
-        }
-        .eraseToAnyPublisher()
-    }
     
     func exportSeed() -> AnyPublisher<Seed, Error> {
         Future<Seed, Error> { promise in
