@@ -11,7 +11,6 @@ import Web3
 import KukaiCoreSwift
 import CryptoKit
 import TweetNacl
-import BitmarkSDK
 
 class Keys {
     
@@ -89,21 +88,5 @@ class Keys {
     
     static func tezosWallet(mnemonic: BIP39Mnemonic, passphrase: String = "") -> HDWallet? {
         HDWallet.create(withMnemonic: mnemonic.words.joined(separator: " "), passphrase: passphrase)
-    }
-    
-    static func bitmarkPrivateKey(mnemonic: BIP39Mnemonic, passphrase: String = "") throws -> String {
-        let masterKey = try HDKey(seed: mnemonic.seedHex(passphrase: ""))
-        let derivationPath = try BIP32Path(string: Constant.bitmarkDerivationPath)
-        let account = try masterKey.derive(using: derivationPath)
-        
-        guard let privateKey = account.privKey?.data.bytes else {
-            throw LibAukError.keyDerivationError
-        }
-
-        let seed = Data(privateKey)
-
-        let keyPair = try NaclSign.KeyPair.keyPair(fromSeed: seed)
-        
-        return try Account(withSeedOrphanedPrivateKey: keyPair.secretKey).address
     }
 }

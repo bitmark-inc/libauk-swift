@@ -17,7 +17,7 @@ let package = Package(
         .package(url: "https://github.com/BlockchainCommons/URKit.git", .exact("7.5.0")),
         .package(url: "https://github.com/keefertaylor/Base58Swift.git", from: "2.1.0"),
         .package(name: "KukaiCoreSwift", url: "https://github.com/autonomy-system/kukai-core-swift.git", .branch("main")),
-        .package(name: "BitmarkSDK", url: "https://github.com/bitmark-inc/bitmark-sdk-swift.git", .revision("9a602320d0908894420738f5264f60a1a089289e"))
+        .package(name: "TweetNacl", url: "https://github.com/bitmark-inc/tweetnacl-swiftwrap", branch: "master")
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
     ],
@@ -31,8 +31,8 @@ let package = Package(
                 .product(name: "Web3", package: "Web3"),
                 .product(name: "URKit", package: "URKit"),
                 .product(name: "KukaiCoreSwift", package: "KukaiCoreSwift"),
-                .product(name: "BitmarkSDK", package: "BitmarkSDK"),
                 .product(name: "Base58Swift", package: "Base58Swift"),
+                .product(name: "TweetNacl", package: "TweetNacl"),
             ]),
         .testTarget(
             name: "LibAukTests",
