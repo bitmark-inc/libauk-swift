@@ -13,7 +13,7 @@ let package = Package(
             targets: ["LibAuk"]),
     ],
     dependencies: [
-        .package(name: "Web3", url: "https://github.com/bitmark-inc/Web3.swift.git", .revision("8ac1fe6bafb666c27cc7c92e476631c87d94f1b9")),
+        .package(name: "Web3.swift", url: "https://github.com/bitmark-inc/Web3.swift.git", .branch("master")),
         .package(url: "https://github.com/BlockchainCommons/URKit.git", .exact("7.5.0")),
         .package(url: "https://github.com/keefertaylor/Base58Swift.git", from: "2.1.0"),
         .package(name: "KukaiCoreSwift", url: "https://github.com/autonomy-system/kukai-core-swift.git", .branch("main")),
@@ -28,7 +28,7 @@ let package = Package(
             name: "LibAuk",
             dependencies: [
                 .target(name: "LibWally"),
-                .product(name: "Web3", package: "Web3"),
+                .product(name: "Web3", package: "Web3.swift"),
                 .product(name: "URKit", package: "URKit"),
                 .product(name: "KukaiCoreSwift", package: "KukaiCoreSwift"),
                 .product(name: "BitmarkSDK", package: "BitmarkSDK"),

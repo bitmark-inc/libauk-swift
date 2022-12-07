@@ -248,7 +248,7 @@ class SecureStorage_Tests: XCTestCase {
         let tx = EthereumTransaction(
             nonce: 1,
             gasPrice: EthereumQuantity(quantity: 21.gwei),
-            gas: 21000,
+            gasLimit: EthereumQuantity(quantity: 21000),
             to: try EthereumAddress(hex: "0xCeb523d2cE54b34af420cab27e10eD56ebcc93DE", eip55: true),
             value: EthereumQuantity(quantity: 1.eth)
         )
