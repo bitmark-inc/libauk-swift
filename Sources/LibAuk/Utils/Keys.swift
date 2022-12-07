@@ -11,7 +11,6 @@ import Web3
 import KukaiCoreSwift
 import CryptoKit
 import TweetNacl
-import BitmarkSDK
 
 class Keys {
     
