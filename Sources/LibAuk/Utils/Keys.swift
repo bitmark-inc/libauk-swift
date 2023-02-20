@@ -86,7 +86,25 @@ class Keys {
         return try EthereumPrivateKey(privateKey)
     }
     
+    static func ethereumPrivateKeyWithIndex(mnemonic: BIP39Mnemonic, passphrase: String = "", index: Int) throws -> EthereumPrivateKey {
+        let masterKey = try HDKey(seed: mnemonic.seedHex(passphrase: ""))
+        let path = "m/44'/60'/0'/0/\(index)"
+        let derivationPath = try BIP32Path(string: path)
+        let account = try masterKey.derive(using: derivationPath)
+        
+        guard let privateKey = account.privKey?.data.bytes else {
+            throw LibAukError.keyDerivationError
+        }
+        
+        return try EthereumPrivateKey(privateKey)
+    }
+    
     static func tezosWallet(mnemonic: BIP39Mnemonic, passphrase: String = "") -> HDWallet? {
         HDWallet.create(withMnemonic: mnemonic.words.joined(separator: " "), passphrase: passphrase)
+    }
+    
+    static func tezosWalletWithIndex(mnemonic: BIP39Mnemonic, passphrase: String = "", index: Int) -> HDWallet? {
+        let path = "m/44'/1729'/0'/\(index)'"
+        HDWallet.create(withMnemonic: mnemonic.words.joined(separator: " "), passphrase: passphrase, derivationPath: path)
     }
 }
