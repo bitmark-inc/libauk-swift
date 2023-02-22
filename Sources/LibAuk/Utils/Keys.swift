@@ -105,6 +105,6 @@ class Keys {
     
     static func tezosWalletWithIndex(mnemonic: BIP39Mnemonic, passphrase: String = "", index: Int) -> HDWallet? {
         let path = "m/44'/1729'/0'/\(index)'"
-        HDWallet.create(withMnemonic: mnemonic.words.joined(separator: " "), passphrase: passphrase, derivationPath: path)
+        return HDWallet.create(withMnemonic: mnemonic.words.joined(separator: " "), passphrase: passphrase, derivationPath: path)
     }
 }
