@@ -256,7 +256,7 @@ class SecureStorage: SecureStorageProtocol {
             Keys.mnemonic($0.data)
         }
         .tryMap { (mnemonic) in
-            let ethPrivateKey = try Keys.ethereumPrivateKeyWithIndex(mnemonic: mnemonic, index: <#T##Int#>)
+            let ethPrivateKey = try Keys.ethereumPrivateKeyWithIndex(mnemonic: mnemonic, index: index)
             return try ethPrivateKey.sign(message: message)
         }
         .eraseToAnyPublisher()
@@ -297,7 +297,7 @@ class SecureStorage: SecureStorageProtocol {
             Keys.mnemonic($0.data)
         }
         .tryMap { mnemonic in
-            let ethPrivateKey = try Keys.ethereumPrivateKeyWithIndex(mnemonic: mnemonic, index: <#T##Int#>)
+            let ethPrivateKey = try Keys.ethereumPrivateKeyWithIndex(mnemonic: mnemonic, index: index)
             
             return try transaction.sign(with: ethPrivateKey, chainId: chainId)
         }
@@ -355,7 +355,7 @@ class SecureStorage: SecureStorageProtocol {
     }
     
     func getTezosPublicKeyWithIndex(index: Int) -> AnyPublisher<String, Error> {
-        getTezosWalletWithIndex(index: <#T##Int#>)
+        getTezosWalletWithIndex(index: index)
             .compactMap {
                 $0.publicKeyBase58encoded()
             }
@@ -376,7 +376,7 @@ class SecureStorage: SecureStorageProtocol {
     }
     
     func tezosSignWithIndex(message: Data, index: Int) -> AnyPublisher<[UInt8], Error> {
-        getTezosWalletWithIndex(index: <#T##Int#>)
+        getTezosWalletWithIndex(index: index)
             .compactMap { wallet in
                 let messageHash = Sodium.shared.genericHash.hash(message: message.bytes, outputLength: 32) ?? []
                 let messageHashData = Data(bytes: messageHash, count: messageHash.count)
@@ -397,7 +397,7 @@ class SecureStorage: SecureStorageProtocol {
     }
     
     func tezosSignTransactionWithIndex(forgedHex: String, index: Int) -> AnyPublisher<[UInt8], Error> {
-        getTezosWalletWithIndex(index: <#T##Int#>)
+        getTezosWalletWithIndex(index: index)
             .compactMap {
                 $0.sign(forgedHex)
             }
@@ -488,7 +488,7 @@ class SecureStorage: SecureStorageProtocol {
             Keys.mnemonic($0.data)
         }
         .compactMap {
-            Keys.tezosWalletWithIndex(mnemonic: $0, index: <#T##Int#>)
+            Keys.tezosWalletWithIndex(mnemonic: $0, index: index)
         }
         .eraseToAnyPublisher()
     }
