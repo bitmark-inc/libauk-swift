@@ -2,8 +2,8 @@
 
 ## Design
 
-`LibAuk` holds the function to setup keychain group and can be used as the static provider of the module.
-`SecureStorage` contains functions to create key and save into keychain, get eth address, sign transaction and export seed as UR format. This can be access by calling `LibAuk.shared.storage`
+`LibAuk` holds the function to set up keychain group and can be used as the static provider of the module.
+`SecureStorage` contains functions to create the key and save it into keychain, get eth and tezos addresses, sign transactions, and export seed as UR format. This can be accessed by calling `LibAuk.shared.storage`
 
 ## Installation
 
