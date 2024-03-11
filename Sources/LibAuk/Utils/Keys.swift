@@ -51,7 +51,7 @@ class Keys {
     }
     
     static func accountDIDPrivateKey(mnemonic: BIP39Mnemonic, passphrase: String = "") throws -> Secp256k1.Signing.PrivateKey {
-        let masterKey = try HDKey(seed: mnemonic.seedHex(passphrase: ""))
+        let masterKey = try HDKey(seed: mnemonic.seedHex(passphrase: passphrase))
         let derivationPath = try BIP32Path(string: Constant.accountDerivationPath)
         let account = try masterKey.derive(using: derivationPath)
         
