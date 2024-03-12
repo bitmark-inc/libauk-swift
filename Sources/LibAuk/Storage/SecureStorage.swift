@@ -318,7 +318,8 @@ class SecureStorage: SecureStorageProtocol {
         }
         .tryMap({ (mnemonic) in
             let privateKey = try Keys.encryptionPrivateKey(mnemonic: mnemonic)
-            return SymmetricKey(data: privateKey.rawRepresentation)
+            let encryptionKey = HKDF<SHA256>.deriveKey(inputKeyMaterial: SymmetricKey(data: privateKey.rawRepresentation), salt: Data(), outputByteCount: 32)
+            return encryptionKey
         })
         .eraseToAnyPublisher()
     }
