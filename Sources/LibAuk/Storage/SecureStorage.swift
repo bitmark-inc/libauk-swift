@@ -29,7 +29,7 @@ public protocol SecureStorageProtocol {
     func ethSignWithIndex(message: Bytes, index: Int) -> AnyPublisher<(v: UInt, r: Bytes, s: Bytes), Error>
     func ethSignTransactionWithIndex(transaction: EthereumTransaction, chainId: EthereumQuantity, index: Int) -> AnyPublisher<EthereumSignedTransaction, Error>
     func encryptFile(inputPath: String, outputPath: String) -> AnyPublisher<String, Error>
-    func decryptFile(inputPath: String, outputPath: String) -> AnyPublisher<String, Error>
+    func decryptFile(inputPath: String, outputPath: String, usingLegacy: Bool) -> AnyPublisher<String, Error>
     func getTezosPublicKey() -> AnyPublisher<String, Error>
     func tezosSign(message: Data) -> AnyPublisher<[UInt8], Error>
     func tezosSignTransaction(forgedHex: String) -> AnyPublisher<[UInt8], Error>
@@ -304,7 +304,7 @@ class SecureStorage: SecureStorageProtocol {
         .eraseToAnyPublisher()
     }
 
-    private func getEncryptKey() -> AnyPublisher<SymmetricKey, Error> {
+    private func getEncryptKey(usingLegacy: Bool = false) -> AnyPublisher<SymmetricKey, Error> {
         return Future<Seed, Error> { promise in
             guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
                   let seed = try? Seed(urString: seedUR.utf8) else {
@@ -318,8 +318,12 @@ class SecureStorage: SecureStorageProtocol {
         }
         .tryMap({ (mnemonic) in
             let privateKey = try Keys.encryptionPrivateKey(mnemonic: mnemonic)
-            let encryptionKey = HKDF<SHA256>.deriveKey(inputKeyMaterial: SymmetricKey(data: privateKey.rawRepresentation), salt: Data(), outputByteCount: 32)
-            return encryptionKey
+            if (usingLegacy) {
+                return SymmetricKey(data: privateKey.rawRepresentation)
+            } else {
+                let encryptionKey = HKDF<SHA256>.deriveKey(inputKeyMaterial: SymmetricKey(data: privateKey.rawRepresentation), salt: Data(), outputByteCount: 32)
+                return encryptionKey
+            }
         })
         .eraseToAnyPublisher()
     }
@@ -335,8 +339,8 @@ class SecureStorage: SecureStorageProtocol {
         .eraseToAnyPublisher()
     }
 
-    func decryptFile(inputPath: String, outputPath: String) -> AnyPublisher<String, Error> {
-        return getEncryptKey().tryMap({ key in
+    func decryptFile(inputPath: String, outputPath: String, usingLegacy: Bool) -> AnyPublisher<String, Error> {
+        return getEncryptKey(usingLegacy: usingLegacy).tryMap({ key in
             let url = URL(fileURLWithPath: inputPath)
             let data = try Data(contentsOf: url)
             let box = try ChaChaPoly.SealedBox(combined: data)
