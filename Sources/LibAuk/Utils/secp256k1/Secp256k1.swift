@@ -168,7 +168,8 @@ extension Secp256k1.Signing {
             let privkey = data.withUnsafeBytes({ keyBytesPtr in Array(keyBytesPtr) })
 
             // Verify the context and keys are setup correctly
-            guard secp256k1_context_randomize(context, privkey) == 1,
+            guard privkey.count == 32,
+                  secp256k1_context_randomize(context, privkey) == 1,
                   secp256k1_ec_pubkey_create(context, &cPubkey, privkey) == 1,
                   secp256k1_ec_pubkey_serialize(context, &pubkey, &pubkeyLen, &cPubkey, UInt32(SECP256K1_EC_COMPRESSED)) == 1 else {
                 self.privateKeyBytes = privatekey
