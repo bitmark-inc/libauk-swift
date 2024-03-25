@@ -30,7 +30,6 @@ class Keychain: KeychainProtocol {
         let query = [
             kSecClass as String: kSecClassGenericPassword as String,
             kSecAttrSynchronizable as String: syncAttr!,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
             kSecAttrAccessGroup as String: LibAuk.shared.keyChainGroup,
             kSecAttrAccount as String: buildKeyAttr(prefix: prefix, key: forKey),
             kSecValueData as String: data
@@ -54,7 +53,7 @@ class Keychain: KeychainProtocol {
             kSecAttrSynchronizable as String: syncAttr!,
             kSecAttrAccount as String: buildKeyAttr(prefix: prefix, key: key),
             kSecReturnData as String: kCFBooleanTrue!,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
             kSecAttrAccessGroup as String: LibAuk.shared.keyChainGroup,
             kSecMatchLimit as String: kSecMatchLimitOne
         ] as [String: Any]
