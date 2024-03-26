@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import LocalAuthentication
 
 protocol KeychainProtocol {
     @discardableResult
@@ -27,12 +28,21 @@ class Keychain: KeychainProtocol {
     @discardableResult
     func set(_ data: Data, forKey: String, isSync: Bool = true) -> Bool {
         let syncAttr = isSync ? kCFBooleanTrue : kCFBooleanFalse
+        var error: Unmanaged<CFError>?
+        let access: SecAccessControl? = SecAccessControlCreateWithFlags(kCFAllocatorDefault,  // Use the default allocator.
+                                                                        kSecAttrAccessibleWhenUnlocked,
+                                                                        [.biometryCurrentSet, .or, .devicePasscode],
+                                                     &error)
+    
         let query = [
             kSecClass as String: kSecClassGenericPassword as String,
-            kSecAttrSynchronizable as String: syncAttr!,
+//            kSecAttrSynchronizable as String: syncAttr!,
             kSecAttrAccessGroup as String: LibAuk.shared.keyChainGroup,
             kSecAttrAccount as String: buildKeyAttr(prefix: prefix, key: forKey),
-            kSecValueData as String: data
+            kSecValueData as String: data,
+//            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
+            kSecAttrAccessControl as String: access,
+//            kSecUseAuthenticationContext as String: context,
         ] as [String: Any]
 
         SecItemDelete(query as CFDictionary)
@@ -48,14 +58,16 @@ class Keychain: KeychainProtocol {
 
     func getData(_ key: String, isSync: Bool = true) -> Data? {
         let syncAttr = isSync ? kCFBooleanTrue : kCFBooleanFalse
+        let context = AccessControl.shared.context
         let query = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrSynchronizable as String: syncAttr!,
+//            kSecAttrSynchronizable as String: syncAttr!,
             kSecAttrAccount as String: buildKeyAttr(prefix: prefix, key: key),
             kSecReturnData as String: kCFBooleanTrue!,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
             kSecAttrAccessGroup as String: LibAuk.shared.keyChainGroup,
-            kSecMatchLimit as String: kSecMatchLimitOne
+//            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecUseAuthenticationContext as String: context,
         ] as [String: Any]
 
         var dataTypeRef: AnyObject?
@@ -75,9 +87,9 @@ class Keychain: KeychainProtocol {
         let query = [
             kSecClass as String: kSecClassGenericPassword as String,
             kSecAttrSynchronizable as String: syncAttr!,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
             kSecAttrAccessGroup as String: LibAuk.shared.keyChainGroup,
-            kSecAttrAccount as String: buildKeyAttr(prefix: prefix, key: key)
+            kSecAttrAccount as String: buildKeyAttr(prefix: prefix, key: key),
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
         ] as [String: Any]
 
         // Delete any existing items
