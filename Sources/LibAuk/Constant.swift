@@ -20,5 +20,6 @@ struct Constant {
 
         static let seed = "seed"
         static let ethInfoKey = "ethInfo"
+        static let seedPublicData = "seedPublicData"
     }
 }
