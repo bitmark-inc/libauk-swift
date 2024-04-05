@@ -12,11 +12,13 @@ public class Seed: Codable {
     public let data: Data
     public let name: String
     public let creationDate: Date?
+    public let passphrase: String?
     
-    init(data: Data, name: String, creationDate: Date? = nil) {
+    init(data: Data, name: String, creationDate: Date? = nil, passphrase: String? = "") {
         self.data = data
         self.name = name
         self.creationDate = creationDate
+        self.passphrase = passphrase
     }
     
     func cbor(nameLimit: Int? = nil, noteLimit: Int? = nil) -> CBOR {
@@ -30,6 +32,10 @@ public class Seed: Codable {
         
         if !name.isEmpty {
             a.append(.init(key: 3, value: CBOR.utf8String(name)))
+        }
+        
+        if !(passphrase?.isEmpty ?? true) {
+            a.append(.init(key: 4, value: CBOR.utf8String(passphrase!)))
         }
         
         return CBOR.orderedMap(OrderedMap(a))
@@ -73,6 +79,7 @@ public class Seed: Codable {
         
         var creationDate: Date? = nil
         var name: String = ""
+        var passphrase: String = ""
         
         if let secondElement = iterator.next() {
             guard case let CBOR.unsignedInt(index) = secondElement.0 else {
@@ -94,11 +101,16 @@ public class Seed: Codable {
                     throw LibAukError.other(reason: "ur:crypto-seed: Name field doesn't contain a string.")
                 }
                 name = s
+            } else if index == 4 {
+                guard case let CBOR.utf8String(s) = secondElement.1 else {
+                    throw LibAukError.other(reason: "ur:crypto-seed: Passphrase field doesn't contain a string.")
+                }
+                passphrase = s
             } else {
                 throw LibAukError.other(reason: "ur:crypto-seed: CBOR contains invalid keys.")
             }
         }
         
-        self.init(data: data, name: name, creationDate: creationDate)
+        self.init(data: data, name: name, creationDate: creationDate, passphrase: passphrase)
     }
 }
