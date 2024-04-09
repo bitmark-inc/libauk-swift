@@ -72,45 +72,47 @@ public class Seed: Codable {
         guard case let CBOR.orderedMap(orderedMap) = cbor else {
             throw LibAukError.other(reason: "ur:crypto-seed: CBOR doesn't contain a map.")
         }
+
         let iterator = orderedMap.makeIterator()
-        guard let seedData = iterator.next(), case let CBOR.unsignedInt(index) = seedData.0, index == 1, case let CBOR.data(data) = seedData.1 else {
-            throw LibAukError.other(reason: "ur:crypto-seed: CBOR doesn't contain data field.")
-        }
-        
+        var seedData: Data?
         var creationDate: Date? = nil
         var name: String = ""
         var passphrase: String = ""
-        
-        if let secondElement = iterator.next() {
-            guard case let CBOR.unsignedInt(index) = secondElement.0 else {
+
+        while let element = iterator.next() {
+            let (indexElement, valueElement) = element
+
+            guard case let CBOR.unsignedInt(index) = indexElement else {
                 throw LibAukError.other(reason: "ur:crypto-seed: CBOR contains invalid keys.")
             }
-            
-            if index == 2 {
-                guard case let CBOR.date(d) = secondElement.1 else {
+
+            switch index {
+            case 1:
+                guard case let CBOR.data(data) = valueElement else {
+                    throw LibAukError.other(reason: "ur:crypto-seed: CBOR doesn't contain data field.")
+                }
+                seedData = data
+            case 2:
+                guard case let CBOR.date(d) = valueElement else {
                     throw LibAukError.other(reason: "ur:crypto-seed: CreationDate field doesn't contain a date.")
                 }
                 creationDate = d
-                
-                if let nameData = iterator.next(), case let CBOR.unsignedInt(index) = nameData.0, index == 3, case let CBOR.utf8String(s) = nameData.1 {
-                    name = s
-                }
-                
-            } else if index == 3 {
-                guard case let CBOR.utf8String(s) = secondElement.1 else {
+            case 3:
+                guard case let CBOR.utf8String(s) = valueElement else {
                     throw LibAukError.other(reason: "ur:crypto-seed: Name field doesn't contain a string.")
                 }
                 name = s
-            } else if index == 4 {
-                guard case let CBOR.utf8String(s) = secondElement.1 else {
+            case 4:
+                guard case let CBOR.utf8String(s) = valueElement else {
                     throw LibAukError.other(reason: "ur:crypto-seed: Passphrase field doesn't contain a string.")
                 }
                 passphrase = s
-            } else {
+            default:
                 throw LibAukError.other(reason: "ur:crypto-seed: CBOR contains invalid keys.")
             }
         }
         
-        self.init(data: data, name: name, creationDate: creationDate, passphrase: passphrase)
+        
+        self.init(data: seedData!, name: name, creationDate: creationDate, passphrase: passphrase)
     }
 }
