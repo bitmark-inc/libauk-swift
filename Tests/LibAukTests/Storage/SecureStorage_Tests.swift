@@ -35,7 +35,7 @@ class SecureStorage_Tests: XCTestCase {
     func testCreateKeySuccessfully() throws {
         let receivedExpectation = expectation(description: "all values received")
 
-        storage.createKey(name: "account1")
+        storage.createKey(password: "", name: "account1")
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished:
@@ -59,7 +59,7 @@ class SecureStorage_Tests: XCTestCase {
         let words: [String] = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak".components(separatedBy: " ")
         let receivedExpectation = expectation(description: "all values received")
 
-        storage.importKey(words: words, name: "account1", creationDate: Date(timeIntervalSince1970: 1628656699))
+        storage.importKey(words: words, password: "", name: "account1", creationDate: Date(timeIntervalSince1970: 1628656699))
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished:
@@ -81,7 +81,7 @@ class SecureStorage_Tests: XCTestCase {
     
     func testIsWalletCreatedSuccessfully() throws {
         let mnemomic = try BIP39Mnemonic(words: "daring mix cradle palm crowd sea observe whisper rubber either uncle oak")
-        try storage.saveKeyInfo(mnemonic: mnemomic)
+        try storage.saveKeyInfo(mnemonic: mnemomic, passphrase: "")
         
         let receivedExpectation = expectation(description: "all values received")
 
@@ -156,7 +156,7 @@ class SecureStorage_Tests: XCTestCase {
     
     func testGetETHAddressSuccessfully() throws {
         let mnemomic = try BIP39Mnemonic(words: "daring mix cradle palm crowd sea observe whisper rubber either uncle oak")
-        try storage.saveKeyInfo(mnemonic: mnemomic)
+        try storage.saveKeyInfo(mnemonic: mnemomic, passphrase: "")
         
         XCTAssertEqual(storage.getETHAddress(), "0xA00cbE6a45102135A210F231901faA6c05D51465")
     }
