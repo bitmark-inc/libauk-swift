@@ -36,6 +36,7 @@ public protocol SecureStorageProtocol {
     func getTezosPublicKeyWithIndex(index: Int) -> AnyPublisher<String, Error>
     func tezosSignWithIndex(message: Data, index: Int) -> AnyPublisher<[UInt8], Error>
     func tezosSignTransactionWithIndex(forgedHex: String, index: Int) -> AnyPublisher<[UInt8], Error>
+    func exportMnemonicPassphrase() -> AnyPublisher<String, Error>
     func exportSeed() -> AnyPublisher<Seed, Error>
     func exportMnemonicWords() -> AnyPublisher<[String], Error>
     func removeKeys() -> AnyPublisher<Void, Error>
@@ -445,6 +446,12 @@ class SecureStorage: SecureStorageProtocol {
             promise(.success(seed))
         }
         .eraseToAnyPublisher()
+    }
+    
+    func exportMnemonicPassphrase() -> AnyPublisher<String, Error> {
+        self.exportSeed()
+            .map { $0.passphrase ?? "" }
+            .eraseToAnyPublisher()
     }
 
     func exportMnemonicWords() -> AnyPublisher<[String], Error> {

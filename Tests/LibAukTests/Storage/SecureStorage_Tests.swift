@@ -406,6 +406,31 @@ class SecureStorage_Tests: XCTestCase {
 
         waitForExpectations(timeout: 1, handler: nil)
     }
+    
+    func testExportMnemonicPassphraseSuccessfully() throws {
+        let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
+        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date(), passphrase: "passphrase1")
+        let seedData = seed.urString.utf8
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        
+        let receivedExpectation = expectation(description: "all values received")
+
+        storage.exportMnemonicPassphrase()
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .finished:
+                    receivedExpectation.fulfill()
+                case .failure(let error):
+                    XCTFail("exportMnemonicPassphrase failed \(error)")
+                }
+
+            }, receiveValue: { passphrase in
+                XCTAssertEqual(passphrase, "passphrase1")
+            })
+            .store(in: &cancelBag)
+
+        waitForExpectations(timeout: 1, handler: nil)
+    }
 
     func testExportMnemonicWordsSuccessfully() throws {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"

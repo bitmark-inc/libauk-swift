@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 public class LibAuk {
     
@@ -28,5 +29,28 @@ public class LibAuk {
     public func storage(for uuid: UUID) -> SecureStorageProtocol {
         let keychain = Keychain(prefix: Constant.KeychainKey.personaPrefix(at: uuid))
         return SecureStorage(keychain: keychain)
+    }
+    
+    public func calculateEthFirstAddress(words: [String], passphrase: String?) -> AnyPublisher<String, Error> {
+        Future<String, Error> { promise in
+            guard let entropy = Keys.entropy(words) else {
+                promise(.failure(LibAukError.invalidMnemonicError))
+                return
+            }
+
+            guard let mnemonic = Keys.mnemonic(entropy) else {
+                promise(.failure(LibAukError.invalidMnemonicError))
+                return
+            }
+
+            do {
+                let ethPrivateKey = try Keys.ethereumPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
+                let ethAddress = ethPrivateKey.address.hex(eip55: true)
+                promise(.success(ethAddress))
+            } catch {
+                promise(.failure(error))
+            }
+        }
+        .eraseToAnyPublisher()
     }
 }
