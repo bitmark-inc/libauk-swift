@@ -409,7 +409,8 @@ class SecureStorage_Tests: XCTestCase {
     
     func testExportMnemonicPassphraseSuccessfully() throws {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
-        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date(), passphrase: "passphrase1")
+        let passphrase = "passphrase1"
+        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date(), passphrase: passphrase)
         let seedData = seed.urString.utf8
         keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
         
@@ -424,8 +425,8 @@ class SecureStorage_Tests: XCTestCase {
                     XCTFail("exportMnemonicPassphrase failed \(error)")
                 }
 
-            }, receiveValue: { passphrase in
-                XCTAssertEqual(passphrase, "passphrase1")
+            }, receiveValue: { receivePassphrase in
+                XCTAssertEqual(receivePassphrase, passphrase)
             })
             .store(in: &cancelBag)
 
