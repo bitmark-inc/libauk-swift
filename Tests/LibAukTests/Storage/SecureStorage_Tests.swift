@@ -104,7 +104,7 @@ class SecureStorage_Tests: XCTestCase {
     
     func testUpdateNameSuccessfully() throws {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
-        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date())
+        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date(), passphrase: "passphrase")
         let seedData = seed.urString.utf8
         keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
         

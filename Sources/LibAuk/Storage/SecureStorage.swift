@@ -137,7 +137,7 @@ class SecureStorage: SecureStorageProtocol {
             promise(.success(seed))
         }
         .map {
-            Seed(data: $0.data, name: name, creationDate: $0.creationDate)
+            Seed(data: $0.data, name: name, creationDate: $0.creationDate, passphrase: $0.passphrase)
         }
         .map { seed in
             let seedData = seed.urString.utf8
