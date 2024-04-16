@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import LibWally
 
 public class LibAuk {
     
@@ -31,26 +32,18 @@ public class LibAuk {
         return SecureStorage(keychain: keychain)
     }
     
-    public func calculateEthFirstAddress(words: [String], passphrase: String?) -> AnyPublisher<String, Error> {
-        Future<String, Error> { promise in
-            guard let entropy = Keys.entropy(words) else {
+    public func calculateEthFirstAddress(words: [String], passphrase: String) -> AnyPublisher<String, Error> {
+        Future<BIP39Mnemonic, Error> { promise in
+            guard let entropy = Keys.entropy(words),
+                  let mnemonic = Keys.mnemonic(entropy) else {
                 promise(.failure(LibAukError.invalidMnemonicError))
                 return
             }
-
-            guard let mnemonic = Keys.mnemonic(entropy) else {
-                promise(.failure(LibAukError.invalidMnemonicError))
-                return
-            }
-
-            do {
-                let ethPrivateKey = try Keys.ethereumPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
-                let ethAddress = ethPrivateKey.address.hex(eip55: true)
-                promise(.success(ethAddress))
-            } catch {
-                promise(.failure(error))
-            }
-        }
+            promise(.success(mnemonic))
+        }.tryMap({ mnemonic in
+            let ethPrivateKey = try Keys.ethereumPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
+            return ethPrivateKey.address.hex(eip55: true)
+        })
         .eraseToAnyPublisher()
     }
 }

@@ -34,8 +34,8 @@ public class Seed: Codable {
             a.append(.init(key: 3, value: CBOR.utf8String(name)))
         }
         
-        if !(passphrase?.isEmpty ?? true) {
-            a.append(.init(key: 4, value: CBOR.utf8String(passphrase!)))
+        if let passphrase = passphrase, !passphrase.isEmpty {
+            a.append(.init(key: 4, value: CBOR.utf8String(passphrase)))
         }
         
         return CBOR.orderedMap(OrderedMap(a))
