@@ -35,7 +35,7 @@ class SecureStorage_Tests: XCTestCase {
     func testCreateKeySuccessfully() throws {
         let receivedExpectation = expectation(description: "all values received")
 
-        storage.createKey(password: "", name: "account1")
+        storage.createKey(passphrase: "", name: "account1")
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished:
@@ -59,7 +59,7 @@ class SecureStorage_Tests: XCTestCase {
         let words: [String] = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak".components(separatedBy: " ")
         let receivedExpectation = expectation(description: "all values received")
 
-        storage.importKey(words: words, password: "", name: "account1", creationDate: Date(timeIntervalSince1970: 1628656699))
+        storage.importKey(words: words, passphrase: "", name: "account1", creationDate: Date(timeIntervalSince1970: 1628656699))
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished:
