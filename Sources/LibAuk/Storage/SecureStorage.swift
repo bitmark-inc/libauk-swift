@@ -15,8 +15,8 @@ import CryptoKit
 import Sodium
 
 public protocol SecureStorageProtocol {
-    func createKey(password: String?, name: String) -> AnyPublisher<Void, Error>
-    func importKey(words: [String], password: String?, name: String, creationDate: Date?) -> AnyPublisher<Void, Error>
+    func createKey(passphrase: String?, name: String) -> AnyPublisher<Void, Error>
+    func importKey(words: [String], passphrase: String?, name: String, creationDate: Date?) -> AnyPublisher<Void, Error>
     func isWalletCreated() -> AnyPublisher<Bool, Error>
     func getName() -> String?
     func updateName(name: String) -> AnyPublisher<Void, Error>
@@ -50,7 +50,7 @@ class SecureStorage: SecureStorageProtocol {
         self.keychain = keychain
     }
     
-    func createKey(password: String?, name: String) -> AnyPublisher<Void, Error> {
+    func createKey(passphrase: String? = "", name: String) -> AnyPublisher<Void, Error> {
         Future<Seed, Error> { promise in
             guard self.keychain.getData(Constant.KeychainKey.ethInfoKey, isSync: true) == nil else {
                 promise(.failure(LibAukError.keyCreationExistingError(key: "createETHKey")))
@@ -62,7 +62,7 @@ class SecureStorage: SecureStorageProtocol {
                 return
             }
             
-            let seed = Seed(data: entropy, name: name, creationDate: Date(), passphrase: password ?? "")
+            let seed = Seed(data: entropy, name: name, creationDate: Date(), passphrase: passphrase)
             let seedData = seed.urString.utf8
 
             
@@ -73,12 +73,12 @@ class SecureStorage: SecureStorageProtocol {
             Keys.mnemonic(seed.data)
         }
         .tryMap { [unowned self] in
-            try self.saveKeyInfo(mnemonic: $0, passphrase: password ?? "")
+            try self.saveKeyInfo(mnemonic: $0, passphrase: passphrase ?? "")
         }
         .eraseToAnyPublisher()
     }
     
-    func importKey(words: [String], password: String?, name: String, creationDate: Date?) -> AnyPublisher<Void, Error> {
+    func importKey(words: [String], passphrase: String? = "", name: String, creationDate: Date?) -> AnyPublisher<Void, Error> {
         Future<Seed, Error> { promise in
             guard self.keychain.getData(Constant.KeychainKey.ethInfoKey, isSync: true) == nil else {
                 promise(.failure(LibAukError.keyCreationExistingError(key: "createETHKey")))
@@ -86,7 +86,7 @@ class SecureStorage: SecureStorageProtocol {
             }
             
             if let entropy = Keys.entropy(words) {
-                let seed = Seed(data: entropy, name: name, creationDate: creationDate ?? Date(), passphrase: password)
+                let seed = Seed(data: entropy, name: name, creationDate: creationDate ?? Date(), passphrase: passphrase)
                 let seedData = seed.urString.utf8
 
                 self.keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
@@ -99,7 +99,7 @@ class SecureStorage: SecureStorageProtocol {
             Keys.mnemonic(seed.data)
         }
         .tryMap { [unowned self] in
-            try self.saveKeyInfo(mnemonic: $0, passphrase: password ?? "")
+            try self.saveKeyInfo(mnemonic: $0, passphrase: passphrase ?? "")
         }
         .eraseToAnyPublisher()
     }
