@@ -25,7 +25,7 @@ class AccessControl {
     // Context
     lazy var context: LAContext = {
         let mainContext = LAContext()
-        mainContext.touchIDAuthenticationAllowableReuseDuration = Double(0)
+        mainContext.touchIDAuthenticationAllowableReuseDuration = Double(5)
         mainContext.localizedReason = reason
         return mainContext
     }()
