@@ -35,7 +35,7 @@ class SecureStorage_Tests: XCTestCase {
     func testCreateKeySuccessfully() throws {
         let receivedExpectation = expectation(description: "all values received")
 
-        storage.createKey(name: "account1")
+        storage.createKey(passphrase: "", name: "account1")
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished:
@@ -59,7 +59,7 @@ class SecureStorage_Tests: XCTestCase {
         let words: [String] = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak".components(separatedBy: " ")
         let receivedExpectation = expectation(description: "all values received")
 
-        storage.importKey(words: words, name: "account1", creationDate: Date(timeIntervalSince1970: 1628656699))
+        storage.importKey(words: words, passphrase: "", name: "account1", creationDate: Date(timeIntervalSince1970: 1628656699))
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished:
@@ -81,7 +81,7 @@ class SecureStorage_Tests: XCTestCase {
     
     func testIsWalletCreatedSuccessfully() throws {
         let mnemomic = try BIP39Mnemonic(words: "daring mix cradle palm crowd sea observe whisper rubber either uncle oak")
-        try storage.saveKeyInfo(mnemonic: mnemomic)
+        try storage.saveKeyInfo(mnemonic: mnemomic, passphrase: "")
         
         let receivedExpectation = expectation(description: "all values received")
 
@@ -104,7 +104,7 @@ class SecureStorage_Tests: XCTestCase {
     
     func testUpdateNameSuccessfully() throws {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
-        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date())
+        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date(), passphrase: "passphrase")
         let seedData = seed.urString.utf8
         keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
         
@@ -156,7 +156,7 @@ class SecureStorage_Tests: XCTestCase {
     
     func testGetETHAddressSuccessfully() throws {
         let mnemomic = try BIP39Mnemonic(words: "daring mix cradle palm crowd sea observe whisper rubber either uncle oak")
-        try storage.saveKeyInfo(mnemonic: mnemomic)
+        try storage.saveKeyInfo(mnemonic: mnemomic, passphrase: "")
         
         XCTAssertEqual(storage.getETHAddress(), "0xA00cbE6a45102135A210F231901faA6c05D51465")
     }
@@ -401,6 +401,32 @@ class SecureStorage_Tests: XCTestCase {
                 XCTAssertEqual(seed.data.hexString, "3791c0c7cfa34583e61fd4bcc8e3b24b")
                 XCTAssertEqual(seed.creationDate, Date(timeIntervalSince1970: 1628656699))
                 XCTAssertEqual(seed.ur.string, "ur:crypto-seed/otadgdemmertsttkotfelsvacttyrfspvlprgraosecyhsbwghfraxishsiaiajlkpjtjyehwscsfejs")
+            })
+            .store(in: &cancelBag)
+
+        waitForExpectations(timeout: 1, handler: nil)
+    }
+    
+    func testExportMnemonicPassphraseSuccessfully() throws {
+        let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
+        let passphrase = "passphrase1"
+        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date(), passphrase: passphrase)
+        let seedData = seed.urString.utf8
+        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+        
+        let receivedExpectation = expectation(description: "all values received")
+
+        storage.exportMnemonicPassphrase()
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .finished:
+                    receivedExpectation.fulfill()
+                case .failure(let error):
+                    XCTFail("exportMnemonicPassphrase failed \(error)")
+                }
+
+            }, receiveValue: { receivePassphrase in
+                XCTAssertEqual(receivePassphrase, passphrase)
             })
             .store(in: &cancelBag)
 
