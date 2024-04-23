@@ -40,12 +40,25 @@ public protocol SecureStorageProtocol {
     func setSeed(seed: Seed, isPrivate: Bool) -> AnyPublisher<Bool, Error>
     func removeSeed() -> AnyPublisher<Bool, Error>
     func migrateFromKeyInfo2SeedPublicData() -> AnyPublisher<Bool, Error>
+    func migrateSeed(isPrivate: Bool) -> AnyPublisher<Bool, Error>
 }
 
 class SecureStorage: SecureStorageProtocol {
     func migrateFromKeyInfo2SeedPublicData() -> AnyPublisher<Bool, Error> {
         Future<Bool, Error> { promise in
+            let isPasscodeEnable = UserDefaults.standard.bool(forKey: "flutter.device_passcode")
             promise(.success(true))
+        }.eraseToAnyPublisher()
+    }
+    
+    func migrateSeed(isPrivate: Bool) -> AnyPublisher<Bool, Error> {
+        Future<Bool, Error> { promise in
+            guard self.getSeedPublicData() == nill else {
+                promise(.failure(LibAukError.keyCreationExistingError(key: "seedPublicData")))
+                return
+            }
+            return getSeed()
+                
         }.eraseToAnyPublisher()
     }
     
@@ -347,6 +360,19 @@ class SecureStorage: SecureStorageProtocol {
         })
         .eraseToAnyPublisher()
     }
+    
+    private func getSeed() -> AnyPublisher<Seed, Error> {
+        Future<Seed, Error> { promise in
+            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                  let seed = try? Seed(urString: seedUR.utf8) else {
+                promise(.failure(LibAukError.emptyKey))
+                return
+            }
+            
+            promise(.success(seed))
+        }.eraseToAnyPublisher()
+    }
+    
     
     func ethSign(message: Bytes) -> AnyPublisher<(v: UInt, r: Bytes, s: Bytes), Error> {
         Future<Seed, Error> { promise in
