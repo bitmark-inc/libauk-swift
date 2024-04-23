@@ -58,7 +58,7 @@ class SecureStorage: SecureStorageProtocol {
                 promise(.failure(LibAukError.keyCreationExistingError(key: "seedPublicData")))
                 return
             }
-            return getSeed()
+            promise(.success(true))
 
         }.eraseToAnyPublisher()
     }
