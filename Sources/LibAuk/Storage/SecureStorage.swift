@@ -54,7 +54,7 @@ class SecureStorage: SecureStorageProtocol {
 
     func migrateSeed(isPrivate: Bool) -> AnyPublisher<Bool, Error> {
         Future<Bool, Error> { promise in
-            guard self.getSeedPublicData() == nill else {
+            guard self.getSeedPublicData() == nil else {
                 promise(.failure(LibAukError.keyCreationExistingError(key: "seedPublicData")))
                 return
             }
