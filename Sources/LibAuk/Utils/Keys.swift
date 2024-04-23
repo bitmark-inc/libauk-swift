@@ -14,8 +14,8 @@ import TweetNacl
 
 class Keys {
     
-    static func fingerprint(mnemonic: BIP39Mnemonic, passphrase: String = "") -> String? {
-        guard let hdMasterKey = try? HDKey(seed: mnemonic.seedHex(passphrase: passphrase)) else { return nil }
+    static func fingerprint(mnemonic: BIP39Mnemonic, passphrase: String? = "") -> String? {
+        guard let hdMasterKey = try? HDKey(seed: mnemonic.seedHex(passphrase: passphrase ?? "")) else { return nil }
         
         return hdMasterKey.fingerprint.hexString
     }
@@ -50,8 +50,8 @@ class Keys {
         return try? BIP39Mnemonic(entropy: bip39entropy)
     }
     
-    static func accountDIDPrivateKey(mnemonic: BIP39Mnemonic, passphrase: String = "") throws -> Secp256k1.Signing.PrivateKey {
-        let masterKey = try HDKey(seed: mnemonic.seedHex(passphrase: passphrase))
+    static func accountDIDPrivateKey(mnemonic: BIP39Mnemonic, passphrase: String? = "") throws -> Secp256k1.Signing.PrivateKey {
+        let masterKey = try HDKey(seed: mnemonic.seedHex(passphrase: passphrase ?? ""))
         let derivationPath = try BIP32Path(string: Constant.accountDerivationPath)
         let account = try masterKey.derive(using: derivationPath)
         
@@ -62,8 +62,8 @@ class Keys {
         return try Secp256k1.Signing.PrivateKey(rawRepresentation: privateKey)
     }
 
-    static func encryptionPrivateKey(mnemonic: BIP39Mnemonic) throws -> Secp256k1.Signing.PrivateKey {
-        let masterKey = try HDKey(seed: mnemonic.seedHex(passphrase: ""))
+    static func encryptionPrivateKey(mnemonic: BIP39Mnemonic, passphrase: String? = "") throws -> Secp256k1.Signing.PrivateKey {
+        let masterKey = try HDKey(seed: mnemonic.seedHex(passphrase: passphrase ?? ""))
         let derivationPath = try BIP32Path(string: Constant.encryptionKeyDerivationPath)
         let keyPair = try masterKey.derive(using: derivationPath)
 
@@ -74,8 +74,8 @@ class Keys {
         return try Secp256k1.Signing.PrivateKey(rawRepresentation: privateKey)
     }
 
-    static func ethereumPrivateKey(mnemonic: BIP39Mnemonic, passphrase: String = "") throws -> EthereumPrivateKey {
-        let masterKey = try HDKey(seed: mnemonic.seedHex(passphrase: ""))
+    static func ethereumPrivateKey(mnemonic: BIP39Mnemonic, passphrase: String? = "") throws -> EthereumPrivateKey {
+        let masterKey = try HDKey(seed: mnemonic.seedHex(passphrase: passphrase ?? ""))
         let derivationPath = try BIP32Path(string: Constant.ethDerivationPath)
         let account = try masterKey.derive(using: derivationPath)
         
@@ -86,8 +86,8 @@ class Keys {
         return try EthereumPrivateKey(privateKey)
     }
     
-    static func ethereumPrivateKeyWithIndex(mnemonic: BIP39Mnemonic, passphrase: String = "", index: Int) throws -> EthereumPrivateKey {
-        let masterKey = try HDKey(seed: mnemonic.seedHex(passphrase: ""))
+    static func ethereumPrivateKeyWithIndex(mnemonic: BIP39Mnemonic, passphrase: String? = "", index: Int) throws -> EthereumPrivateKey {
+        let masterKey = try HDKey(seed: mnemonic.seedHex(passphrase: passphrase ?? ""))
         let path = "m/44'/60'/0'/0/\(index)"
         let derivationPath = try BIP32Path(string: path)
         let account = try masterKey.derive(using: derivationPath)
@@ -99,12 +99,12 @@ class Keys {
         return try EthereumPrivateKey(privateKey)
     }
     
-    static func tezosWallet(mnemonic: BIP39Mnemonic, passphrase: String = "") -> HDWallet? {
-        HDWallet.create(withMnemonic: mnemonic.words.joined(separator: " "), passphrase: passphrase)
+    static func tezosWallet(mnemonic: BIP39Mnemonic, passphrase: String? = "") -> HDWallet? {
+        HDWallet.create(withMnemonic: mnemonic.words.joined(separator: " "), passphrase: passphrase ?? "")
     }
     
-    static func tezosWalletWithIndex(mnemonic: BIP39Mnemonic, passphrase: String = "", index: Int) -> HDWallet? {
+    static func tezosWalletWithIndex(mnemonic: BIP39Mnemonic, passphrase: String? = "", index: Int) -> HDWallet? {
         let path = "m/44'/1729'/\(index)'/0'"
-        return HDWallet.create(withMnemonic: mnemonic.words.joined(separator: " "), passphrase: passphrase, derivationPath: path)
+        return HDWallet.create(withMnemonic: mnemonic.words.joined(separator: " "), passphrase: passphrase ?? "", derivationPath: path)
     }
 }
