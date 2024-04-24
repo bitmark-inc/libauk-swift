@@ -42,6 +42,7 @@ public protocol SecureStorageProtocol {
     func removeSeed() -> AnyPublisher<Bool, Error>
     func migrateFromKeyInfo2SeedPublicData() -> AnyPublisher<Bool, Error>
     func migrateSeed(isPrivate: Bool) -> AnyPublisher<Bool, Error>
+    func generateSeedPublicData(seed: Seed) throws -> SeedPublicData?
 }
 
 class SecureStorage: SecureStorageProtocol {
@@ -138,7 +139,7 @@ class SecureStorage: SecureStorageProtocol {
         return ethAddress
     }
 
-    internal func generateSeedPublicData(seed: Seed) throws -> SeedPublicData? {
+    func generateSeedPublicData(seed: Seed) throws -> SeedPublicData? {
         do {
             /* seedName */
             let name = seed.name
