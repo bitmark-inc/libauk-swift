@@ -263,7 +263,7 @@ class SecureStorage: SecureStorageProtocol {
     }
     
     func setData(_ data: Data, forKey: String, isSync: Bool = true, isPrivate: Bool) -> Bool {
-        return self.keychain.set(data: data, forKey: forKey, isSync: isSync, isPrivate: isPrivate)
+        return self.keychain.set(data, forKey: forKey, isSync: isSync, isPrivate: isPrivate)
     }
 
     func removeSeed() -> AnyPublisher<Bool, Error> {
