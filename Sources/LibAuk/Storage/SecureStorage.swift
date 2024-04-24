@@ -43,7 +43,7 @@ public protocol SecureStorageProtocol {
     func migrateFromKeyInfo2SeedPublicData() -> AnyPublisher<Bool, Error>
     func migrateSeed(isPrivate: Bool) -> AnyPublisher<Bool, Error>
     func generateSeedPublicData(seed: Seed) throws -> SeedPublicData?
-    func setData(_ data: Data, forKey: String, isSync: Bool = true, isPrivate: Bool) -> Bool
+    func setData(_ data: Data, forKey: String, isSync: Bool, isPrivate: Bool) -> Bool
 }
 
 class SecureStorage: SecureStorageProtocol {
