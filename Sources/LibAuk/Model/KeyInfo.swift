@@ -18,7 +18,6 @@ public struct SeedPublicData: Codable {
     let name: String?
     let did: String
     let preGenerateEthAddress: [Int: String]
-    let preGenerateTezosAddress: [Int: String]
     let tezosPublicKeys: [Int: String]
     var _encryptionPrivateKeyBase64: String? = nil
     var _accountDIDPrivateKeyBase64: String? = nil
