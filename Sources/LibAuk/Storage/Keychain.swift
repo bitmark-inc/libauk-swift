@@ -49,7 +49,7 @@ class Keychain: KeychainProtocol {
         if let access = accessControl {
                 query[kSecAttrAccessControl as String] = access
         } else {
-            query[kSecAttrAccessible as String] =  AccessControl.shared.accessible,
+            query[kSecAttrAccessible as String] =  AccessControl.shared.accessible
         }
 
         SecItemDelete(query as CFDictionary)
