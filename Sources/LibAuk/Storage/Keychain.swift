@@ -44,12 +44,13 @@ class Keychain: KeychainProtocol {
             kSecAttrAccessGroup as String: LibAuk.shared.keyChainGroup,
             kSecAttrAccount as String: buildKeyAttr(prefix: prefix, key: forKey),
             kSecValueData as String: data,
-            kSecAttrAccessible as String: AccessControl.shared.accessible,
         ] as [String: Any]
         
         if let access = accessControl {
                 query[kSecAttrAccessControl as String] = access
-            }
+        } else {
+            query[kSecAttrAccessible as String] =  AccessControl.shared.accessible,
+        }
 
         SecItemDelete(query as CFDictionary)
 

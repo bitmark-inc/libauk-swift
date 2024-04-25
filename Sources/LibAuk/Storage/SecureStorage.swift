@@ -40,7 +40,7 @@ public protocol SecureStorageProtocol {
     func removeKeys() -> AnyPublisher<Void, Error>
     func setSeed(seed: Seed, isPrivate: Bool) -> AnyPublisher<Bool, Error>
     func removeSeed() -> AnyPublisher<Bool, Error>
-    func generateSeedPublicData(seed: Seed) throws -> SeedPublicData?
+    func generateSeedPublicData(seed: Seed) throws -> AnyPublisher<SeedPublicData, Error>
     func setData(_ data: Data, forKey: String, isSync: Bool, isPrivate: Bool) -> Bool
 }
 
@@ -54,7 +54,7 @@ class SecureStorage: SecureStorageProtocol {
         self.keychain = keychain
     }
     
-    internal func generateEthAddresses(mnemonic: BIP39Mnemonic, passphrase: String?, start: Int = 0, end: Int = 100) -> [Int: String] {
+    private func generateEthAddresses(mnemonic: BIP39Mnemonic, passphrase: String?, start: Int = 0, end: Int = 100) -> [Int: String] {
         var ethAddresses: [Int: String] = [:]
 
         for index in start...end {
@@ -76,7 +76,7 @@ class SecureStorage: SecureStorageProtocol {
         return ethAddresses
     }
 
-    internal func generateTezosPublicKeys(mnemonic: BIP39Mnemonic, passphrase: String?, start: Int, end: Int) -> [Int: String] {
+    private func generateTezosPublicKeys(mnemonic: BIP39Mnemonic, passphrase: String?, start: Int, end: Int) -> [Int: String] {
         var tezosPublicKeys: [Int: String] = [:]
 
         for index in start...end {
@@ -93,56 +93,57 @@ class SecureStorage: SecureStorageProtocol {
         return tezosPublicKeys
     }
 
-    internal func generateEthAddress(mnemonic: BIP39Mnemonic, passphrase: String?) throws -> String {
+    private func generateEthAddress(mnemonic: BIP39Mnemonic, passphrase: String?) throws -> String {
         let ethPrivateKey = try Keys.ethereumPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
         let ethAddress = ethPrivateKey.address.hex(eip55: true)
         return ethAddress
     }
 
-    func generateSeedPublicData(seed: Seed) throws -> SeedPublicData? {
-        do {
-            /* seedName */
-            let name = seed.name
-
-            /*  accountDidKey */
-            let mnemonic = Keys.mnemonic(seed.data)!
-            let passphrase = seed.passphrase
-            let privateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic)
-
-            // Multicodec encoded with prefix 0xe7
-            var bytes: [UInt8] = [231, 1]
-            bytes.append(contentsOf: privateKey.publicKey.rawRepresentation.bytes)
-            let did = "did:key:z\(Base58.base58Encode(bytes))"
-
-            /* pre-generate 100 eth addresses */
-            let ethAddresses = generateEthAddresses(mnemonic: mnemonic, passphrase: passphrase, start: 0, end: self.preGenerateAddressLimit)
-
-            /* encryptionPrivateKey */
-            let encryptionPrivateKey = try Keys.encryptionPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
-
-            /* accountDIDPrivateKey */
-            let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
-
-            /* tezos public key */
-            let tezosPublicKeys = generateTezosPublicKeys(mnemonic: mnemonic, passphrase: passphrase, start: 0, end: self.preGenerateAddressLimit)
-
-            let ethAddress = try generateEthAddress(mnemonic: mnemonic, passphrase: passphrase)
-
-            var seedPublicData = SeedPublicData(ethAddress: ethAddress,
-                creationDate: Date(),
-                                  name: name,
-                                  did: did,
-                                  preGenerateEthAddress: ethAddresses,
-                                  tezosPublicKeys: tezosPublicKeys)
-
-            seedPublicData.encryptionPrivateKey = encryptionPrivateKey
-            seedPublicData.accountDIDPrivateKey = accountDIDPrivateKey
-            return seedPublicData
-        }
-        catch {
-            print("Error generating public info")
-        }
-        return nil
+    func generateSeedPublicData(seed: Seed) -> AnyPublisher<SeedPublicData, Error> {
+        Future<SeedPublicData, Error> { promise in
+            do {
+                /* seedName */
+                let name = seed.name
+                
+                /*  accountDidKey */
+                let mnemonic = Keys.mnemonic(seed.data)!
+                let passphrase = seed.passphrase
+                let privateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic)
+                
+                // Multicodec encoded with prefix 0xe7
+                var bytes: [UInt8] = [231, 1]
+                bytes.append(contentsOf: privateKey.publicKey.rawRepresentation.bytes)
+                let did = "did:key:z\(Base58.base58Encode(bytes))"
+                
+                /* pre-generate 100 eth addresses */
+                let ethAddresses = self.generateEthAddresses(mnemonic: mnemonic, passphrase: passphrase, start: 0, end: self.preGenerateAddressLimit)
+                
+                /* encryptionPrivateKey */
+                let encryptionPrivateKey = try Keys.encryptionPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
+                
+                /* accountDIDPrivateKey */
+                let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
+                
+                /* tezos public key */
+                let tezosPublicKeys = self.generateTezosPublicKeys(mnemonic: mnemonic, passphrase: passphrase, start: 0, end: self.preGenerateAddressLimit)
+                
+                let ethAddress = try self.generateEthAddress(mnemonic: mnemonic, passphrase: passphrase)
+                
+                var seedPublicData = SeedPublicData(ethAddress: ethAddress,
+                                                    creationDate: Date(),
+                                                    name: name,
+                                                    did: did,
+                                                    preGenerateEthAddress: ethAddresses,
+                                                    tezosPublicKeys: tezosPublicKeys)
+                
+                seedPublicData.encryptionPrivateKey = encryptionPrivateKey
+                seedPublicData.accountDIDPrivateKey = accountDIDPrivateKey
+                promise(.success(seedPublicData))
+            }
+            catch {
+                promise(.failure(LibAukError.generateSeedPublicDataError))
+            }
+        }.eraseToAnyPublisher()
     }
 
     internal func getSeedPublicData() -> SeedPublicData? {
@@ -172,11 +173,15 @@ class SecureStorage: SecureStorageProtocol {
             self.keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true, isPrivate: isPrivate)
             promise(.success(seed))
         }
-        .tryMap { [unowned self] in
-            try self.saveSeedPublicData(seed: $0)
-        }
-
-        .eraseToAnyPublisher()
+        .flatMap { seed in
+            do {
+                return try self.saveSeedPublicData(seed: seed)
+                    .map { _ in () } // Map the output to Void
+                    .eraseToAnyPublisher()
+            } catch {
+                return Fail(error: error).eraseToAnyPublisher()
+            }
+        }.eraseToAnyPublisher()
     }
     
     func importKey(words: [String], passphrase: String? = "", name: String, creationDate: Date?, isPrivate: Bool) -> AnyPublisher<Void, Error> {
@@ -580,11 +585,11 @@ class SecureStorage: SecureStorageProtocol {
     }
 
     
-    func saveSeedPublicData(seed: Seed) throws {
-        let seedPublicData = try self.generateSeedPublicData(seed: seed)
-
-        let seedPublicDataRaw = try JSONEncoder().encode(seedPublicData)
-        keychain.set(seedPublicDataRaw, forKey: Constant.KeychainKey.seedPublicData, isSync: true, isPrivate: false)
+    func saveSeedPublicData(seed: Seed) -> AnyPublisher<Void, Error> {
+        return self.generateSeedPublicData(seed: seed).tryMap { seedPublicData in
+            let seedPublicDataRaw = try JSONEncoder().encode(seedPublicData)
+            self.keychain.set(seedPublicDataRaw, forKey: Constant.KeychainKey.seedPublicData, isSync: true, isPrivate: false)
+        }.eraseToAnyPublisher()
     }
     
     internal func getTezosWallet() -> AnyPublisher<HDWallet, Error> {
