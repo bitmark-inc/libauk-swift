@@ -32,7 +32,7 @@ class Keychain: KeychainProtocol {
         var accessControl: SecAccessControl?
         if (isPrivate) { 
             accessControl =  SecAccessControlCreateWithFlags(
-                kCFAllocatorDefault,  // Use the default allocator.
+                nil,  // Use the default allocator.
                 AccessControl.shared.accessible,
                 [.biometryCurrentSet, .or, .devicePasscode],
                 &error)
@@ -42,6 +42,7 @@ class Keychain: KeychainProtocol {
             kSecClass as String: kSecClassGenericPassword as String,
             kSecAttrAccessGroup as String: LibAuk.shared.keyChainGroup,
             kSecAttrAccount as String: buildKeyAttr(prefix: prefix, key: forKey),
+            kSecAttrSynchronizable as String: syncAttr,
             kSecValueData as String: data,
         ] as [String: Any]
         
