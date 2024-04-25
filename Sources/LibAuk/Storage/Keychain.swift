@@ -40,7 +40,6 @@ class Keychain: KeychainProtocol {
     
         var query = [
             kSecClass as String: kSecClassGenericPassword as String,
-            kSecAttrSynchronizable as String: syncAttr!,
             kSecAttrAccessGroup as String: LibAuk.shared.keyChainGroup,
             kSecAttrAccount as String: buildKeyAttr(prefix: prefix, key: forKey),
             kSecValueData as String: data,
