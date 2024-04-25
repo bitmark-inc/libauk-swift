@@ -45,23 +45,6 @@ public protocol SecureStorageProtocol {
 }
 
 class SecureStorage: SecureStorageProtocol {
-    func migrateFromKeyInfo2SeedPublicData() -> AnyPublisher<Bool, Error> {
-        Future<Bool, Error> { promise in
-            let isPasscodeEnable = UserDefaults.standard.bool(forKey: "flutter.device_passcode")
-            promise(.success(true))
-        }.eraseToAnyPublisher()
-    }
-
-    func migrateSeed(isPrivate: Bool) -> AnyPublisher<Bool, Error> {
-        Future<Bool, Error> { promise in
-            guard self.getSeedPublicData() == nil else {
-                promise(.failure(LibAukError.keyCreationExistingError(key: "seedPublicData")))
-                return
-            }
-            promise(.success(true))
-
-        }.eraseToAnyPublisher()
-    }
 
     private let keychain: KeychainProtocol
     
@@ -77,7 +60,7 @@ class SecureStorage: SecureStorageProtocol {
         for index in start...end {
             do {
                 // Generate Ethereum private key for the current index
-                let privateKey = try Keys.ethereumPrivateKeyWithIndex(mnemonic: mnemonic, index: index, passphrase: passphrase)
+                let privateKey = try Keys.ethereumPrivateKeyWithIndex(mnemonic: mnemonic, passphrase: passphrase, index: index)
 
                 // Derive Ethereum address from the private key
                 let address = privateKey.address.hex(eip55: true)
@@ -93,11 +76,10 @@ class SecureStorage: SecureStorageProtocol {
         return ethAddresses
     }
 
-    internal func generateTezosPublicKeys(mnemonic: BIP39Mnemonic, passphrase: String? start: Int, end: Int) -> [Int: String] {
+    internal func generateTezosPublicKeys(mnemonic: BIP39Mnemonic, passphrase: String?, start: Int, end: Int) -> [Int: String] {
         var tezosPublicKeys: [Int: String] = [:]
 
         for index in start...end {
-            do {
                 // Generate Tezos wallet for the current index
                 let tezosWallet = Keys.tezosWalletWithIndex(mnemonic: mnemonic, passphrase: passphrase, index: index)
 
@@ -106,10 +88,6 @@ class SecureStorage: SecureStorageProtocol {
 
                 // Store the public key in the dictionary
                 tezosPublicKeys[index] = publicKey
-            } catch {
-                // Handle errors if Tezos wallet generation fails
-                print("Error generating Tezos public key for index \(index): \(error)")
-            }
         }
 
         return tezosPublicKeys
@@ -146,9 +124,9 @@ class SecureStorage: SecureStorageProtocol {
             let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
 
             /* tezos public key */
-            let tezosPublicKeys = generateTezosPublicKeys(mnemonic: mnemonic, start: 0, end: self.preGenerateAddressLimit)
+            let tezosPublicKeys = generateTezosPublicKeys(mnemonic: mnemonic, passphrase: passphrase, start: 0, end: self.preGenerateAddressLimit)
 
-            let ethAddress = try generateEthAddress(mnemonic: mnemonic)
+            let ethAddress = try generateEthAddress(mnemonic: mnemonic, passphrase: passphrase)
 
             var seedPublicData = SeedPublicData(ethAddress: ethAddress,
                 creationDate: Date(),
