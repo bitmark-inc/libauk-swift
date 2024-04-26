@@ -35,7 +35,6 @@ class Keychain: KeychainProtocol {
             kSecAttrAccount as String: buildKeyAttr(prefix: prefix, key: forKey),
             kSecValueData as String: data
         ] as [String: Any]
-
         SecItemDelete(query as CFDictionary)
 
         let status = SecItemAdd(query as CFDictionary, nil)
