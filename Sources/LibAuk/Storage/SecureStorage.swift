@@ -145,6 +145,8 @@ class SecureStorage: SecureStorageProtocol {
             }
         }.eraseToAnyPublisher()
     }
+    
+    
 
     internal func getSeedPublicData() -> SeedPublicData? {
         guard let seedPublicDataRaw = self.keychain.getData(Constant.KeychainKey.seedPublicData, isSync: true),
@@ -201,8 +203,14 @@ class SecureStorage: SecureStorageProtocol {
                 promise(.failure(LibAukError.invalidMnemonicError))
             }
         }
-        .tryMap { [unowned self] in
-            try self.saveSeedPublicData(seed: $0)
+        .flatMap { seed in
+            do {
+                return try self.saveSeedPublicData(seed: seed)
+                    .map { _ in () } // Map the output to Void
+                    .eraseToAnyPublisher()
+            } catch {
+                return Fail(error: error).eraseToAnyPublisher()
+            }
         }
         .eraseToAnyPublisher()
     }

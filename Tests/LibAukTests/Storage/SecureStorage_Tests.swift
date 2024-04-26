@@ -41,8 +41,8 @@ class SecureStorage_Tests: XCTestCase {
                 case .finished:
                     XCTAssertNotNil(self.keychain.getData(Constant.KeychainKey.seed))
                     XCTAssertTrue(self.keychain.getSync(Constant.KeychainKey.seed)!)
-                    XCTAssertNotNil(self.keychain.getData(Constant.KeychainKey.ethInfoKey))
-                    XCTAssertTrue(self.keychain.getSync(Constant.KeychainKey.ethInfoKey)!)
+                    XCTAssertNotNil(self.keychain.getData(Constant.KeychainKey.seedPublicData))
+                    XCTAssertTrue(self.keychain.getSync(Constant.KeychainKey.seedPublicData)!)
 
                     receivedExpectation.fulfill()
                 case .failure(let error):
@@ -65,8 +65,8 @@ class SecureStorage_Tests: XCTestCase {
                 case .finished:
                     XCTAssertNotNil(self.keychain.getData(Constant.KeychainKey.seed))
                     XCTAssertTrue(self.keychain.getSync(Constant.KeychainKey.seed)!)
-                    XCTAssertNotNil(self.keychain.getData(Constant.KeychainKey.ethInfoKey))
-                    XCTAssertTrue(self.keychain.getSync(Constant.KeychainKey.ethInfoKey)!)
+                    XCTAssertNotNil(self.keychain.getData(Constant.KeychainKey.seedPublicData))
+                    XCTAssertTrue(self.keychain.getSync(Constant.KeychainKey.seedPublicData)!)
 
                     receivedExpectation.fulfill()
                 case .failure(let error):
@@ -82,10 +82,17 @@ class SecureStorage_Tests: XCTestCase {
     func testIsWalletCreatedSuccessfully() throws {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
         let seed = Seed(data: Keys.entropy(words)!, name: "", creationDate: Date(), passphrase: "")
-        try storage.saveSeedPublicData(seed: seed)
-        
-        let receivedExpectation = expectation(description: "all values received")
+        let mnemonic = Keys.mnemonic(seed.data)!
 
+        var seedPublicData = SeedPublicData(ethAddress: "0xA00cbE6a45102135A210F231901faA6c05D51465", creationDate: Date(), name: "", did: "did:key:zQ3shUnBWE7Dkskaozsnzsb78kVcgQFbtXf7zdCCDN3qepBGL", preGenerateEthAddress: [:], tezosPublicKeys: [:])
+        let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: "")
+        let encryptionPrivateKey = try Keys.encryptionPrivateKey(mnemonic: mnemonic, passphrase: "")
+        seedPublicData.encryptionPrivateKey = encryptionPrivateKey
+        seedPublicData.accountDIDPrivateKey = accountDIDPrivateKey
+        let seedPublicDataRaw = try JSONEncoder().encode(seedPublicData)
+        keychain.set(seedPublicDataRaw, forKey: Constant.KeychainKey.seedPublicData, isSync: true, isPrivate: true)
+        let receivedExpectation = expectation(description: "all values received")
+        
         storage.isWalletCreated()
             .sink(receiveCompletion: { completion in
                 switch completion {
@@ -103,47 +110,34 @@ class SecureStorage_Tests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
     
-    func testGetNameSuccessfully() throws {
-        let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
-        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date())
-        let seedData = seed.urString.utf8
-        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true, isPrivate: true)
-        
-        XCTAssertEqual(storage.getName(), "account1")
-    }
-    
-    func testGetNameWithOptionalCreationDateSuccessfully() throws {
-        let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
-        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: nil)
-        let seedData = seed.urString.utf8
-        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true, isPrivate: true)
-        
-        XCTAssertEqual(storage.getName(), "account1")
-    }
-    
-    func testGetNameWithEmptySuccessfully() throws {
-        let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
-        let seed = Seed(data: Keys.entropy(words)!, name: "", creationDate: Date())
-        let seedData = seed.urString.utf8
-        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true, isPrivate: true)
-        
-        XCTAssertEqual(storage.getName(), "")
-    }
-    
     func testGetETHAddressSuccessfully() throws {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
-        let seed = Seed(data: Keys.entropy(words)!, name: "", creationDate: Date())
-        try storage.saveSeedPublicData(seed: seed)
+        let seed = Seed(data: Keys.entropy(words)!, name: "", creationDate: Date(), passphrase: "")
+        let mnemonic = Keys.mnemonic(seed.data)!
+
+        var seedPublicData = SeedPublicData(ethAddress: "0xA00cbE6a45102135A210F231901faA6c05D51465", creationDate: Date(), name: "", did: "did:key:zQ3shUnBWE7Dkskaozsnzsb78kVcgQFbtXf7zdCCDN3qepBGL", preGenerateEthAddress: [:], tezosPublicKeys: [:])
+        let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: "")
+        let encryptionPrivateKey = try Keys.encryptionPrivateKey(mnemonic: mnemonic, passphrase: "")
+        seedPublicData.encryptionPrivateKey = encryptionPrivateKey
+        seedPublicData.accountDIDPrivateKey = accountDIDPrivateKey
+        let seedPublicDataRaw = try JSONEncoder().encode(seedPublicData)
+        keychain.set(seedPublicDataRaw, forKey: Constant.KeychainKey.seedPublicData, isSync: true, isPrivate: true)
         
         XCTAssertEqual(storage.getETHAddress(), "0xA00cbE6a45102135A210F231901faA6c05D51465")
     }
     
     func testGetAccountDIDSuccessfully() throws {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
-        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date())
-        let seedData = seed.urString.utf8
-        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true, isPrivate: true)
-        
+        let seed = Seed(data: Keys.entropy(words)!, name: "", creationDate: Date(), passphrase: "")
+        let mnemonic = Keys.mnemonic(seed.data)!
+
+        var seedPublicData = SeedPublicData(ethAddress: "0xA00cbE6a45102135A210F231901faA6c05D51465", creationDate: Date(), name: "", did: "did:key:zQ3shUnBWE7Dkskaozsnzsb78kVcgQFbtXf7zdCCDN3qepBGL", preGenerateEthAddress: [:], tezosPublicKeys: [:])
+        let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: "")
+        let encryptionPrivateKey = try Keys.encryptionPrivateKey(mnemonic: mnemonic, passphrase: "")
+        seedPublicData.encryptionPrivateKey = encryptionPrivateKey
+        seedPublicData.accountDIDPrivateKey = accountDIDPrivateKey
+        let seedPublicDataRaw = try JSONEncoder().encode(seedPublicData)
+        keychain.set(seedPublicDataRaw, forKey: Constant.KeychainKey.seedPublicData, isSync: true, isPrivate: true)
         let receivedExpectation = expectation(description: "all values received")
         
         storage.getAccountDID()
@@ -165,10 +159,16 @@ class SecureStorage_Tests: XCTestCase {
     
     func testGetAccountDIDSignatureSuccessfully() throws {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
-        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date())
-        let seedData = seed.urString.utf8
-        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true, isPrivate: true)
-        
+        let seed = Seed(data: Keys.entropy(words)!, name: "", creationDate: Date(), passphrase: "")
+        let mnemonic = Keys.mnemonic(seed.data)!
+
+        var seedPublicData = SeedPublicData(ethAddress: "0xA00cbE6a45102135A210F231901faA6c05D51465", creationDate: Date(), name: "", did: "did:key:zQ3shUnBWE7Dkskaozsnzsb78kVcgQFbtXf7zdCCDN3qepBGL", preGenerateEthAddress: [:], tezosPublicKeys: [:])
+        let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: "")
+        let encryptionPrivateKey = try Keys.encryptionPrivateKey(mnemonic: mnemonic, passphrase: "")
+        seedPublicData.encryptionPrivateKey = encryptionPrivateKey
+        seedPublicData.accountDIDPrivateKey = accountDIDPrivateKey
+        let seedPublicDataRaw = try JSONEncoder().encode(seedPublicData)
+        keychain.set(seedPublicDataRaw, forKey: Constant.KeychainKey.seedPublicData, isSync: true, isPrivate: true)
         let receivedExpectation = expectation(description: "all values received")
         
         storage.getAccountDIDSignature(message: "hello")
@@ -408,10 +408,16 @@ class SecureStorage_Tests: XCTestCase {
     
     func testRemoveKeysSuccessfully() throws {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
-        let seed = Seed(data: Keys.entropy(words)!, name: "account1", creationDate: Date(timeIntervalSince1970: 1628656699))
-        let seedData = seed.urString.utf8
-        keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true, isPrivate: true)
-        
+        let seed = Seed(data: Keys.entropy(words)!, name: "", creationDate: Date(), passphrase: "")
+        let mnemonic = Keys.mnemonic(seed.data)!
+
+        var seedPublicData = SeedPublicData(ethAddress: "0xA00cbE6a45102135A210F231901faA6c05D51465", creationDate: Date(), name: "", did: "did:key:zQ3shUnBWE7Dkskaozsnzsb78kVcgQFbtXf7zdCCDN3qepBGL", preGenerateEthAddress: [:], tezosPublicKeys: [:])
+        let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: "")
+        let encryptionPrivateKey = try Keys.encryptionPrivateKey(mnemonic: mnemonic, passphrase: "")
+        seedPublicData.encryptionPrivateKey = encryptionPrivateKey
+        seedPublicData.accountDIDPrivateKey = accountDIDPrivateKey
+        let seedPublicDataRaw = try JSONEncoder().encode(seedPublicData)
+        keychain.set(seedPublicDataRaw, forKey: Constant.KeychainKey.seedPublicData, isSync: true, isPrivate: true)
         let receivedExpectation = expectation(description: "all values received")
 
         storage.removeKeys()
@@ -419,7 +425,7 @@ class SecureStorage_Tests: XCTestCase {
                 switch completion {
                 case .finished:
                     XCTAssertNil(self.keychain.getData(Constant.KeychainKey.seed))
-                    XCTAssertNil(self.keychain.getData(Constant.KeychainKey.ethInfoKey))
+                    XCTAssertNil(self.keychain.getData(Constant.KeychainKey.seedPublicData))
 
                     receivedExpectation.fulfill()
                 case .failure(let error):
