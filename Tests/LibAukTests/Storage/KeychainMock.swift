@@ -10,11 +10,11 @@ import Foundation
 @testable import LibAuk
 
 class KeychainMock: KeychainProtocol {
-
+    
     var values = [String: (Data, Bool)]()
     
     @discardableResult
-    func set(_ data: Data, forKey: String, isSync: Bool) -> Bool {
+    func set(_ data: Data, forKey: String, isSync: Bool, isPrivate: Bool) -> Bool {
         values[forKey] = (data, isSync)
         return true
     }

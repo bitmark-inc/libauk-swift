@@ -49,26 +49,26 @@ public class Seed: Codable {
         UREncoder.encode(ur)
     }
     
-    convenience init(urString: String) throws {
+    public convenience init(urString: String) throws {
         let ur = try URDecoder.decode(urString)
         try self.init(ur: ur)
     }
     
-    convenience init(ur: UR) throws {
+    public convenience init(ur: UR) throws {
         guard ur.type == "crypto-seed" else {
             throw LibAukError.other(reason: "Unexpected UR type.")
         }
         try self.init(cborData: ur.cbor)
     }
 
-    convenience init(cborData: Data) throws {
+    public convenience init(cborData: Data) throws {
         guard let cbor = try? CBOR(cborData) else {
             throw LibAukError.other(reason: "ur:crypto-seed: Invalid CBOR.")
         }
         try self.init(cbor: cbor)
     }
     
-    convenience init(cbor: CBOR) throws {
+    public convenience init(cbor: CBOR) throws {
         guard case let CBOR.orderedMap(orderedMap) = cbor else {
             throw LibAukError.other(reason: "ur:crypto-seed: CBOR doesn't contain a map.")
         }

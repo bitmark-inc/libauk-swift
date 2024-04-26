@@ -14,6 +14,7 @@ public enum LibAukError: Error {
     case emptyKey
     case keyCreationExistingError(key: String)
     case keyDerivationError
+    case generateSeedPublicDataError
     case other(reason: String)
 }
 
@@ -44,6 +45,8 @@ extension LibAukError: LocalizedError {
             return "create key error: key exists"
         case .keyDerivationError:
             return "key derivation error"
+        case .generateSeedPublicDataError:
+            return "generate seed public data error"
         case .other(let reason):
             return reason
         }

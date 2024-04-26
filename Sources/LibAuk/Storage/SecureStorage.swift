@@ -15,11 +15,10 @@ import CryptoKit
 import Sodium
 
 public protocol SecureStorageProtocol {
-    func createKey(passphrase: String?, name: String) -> AnyPublisher<Void, Error>
-    func importKey(words: [String], passphrase: String?, name: String, creationDate: Date?) -> AnyPublisher<Void, Error>
+    func createKey(passphrase: String?, name: String, isPrivate: Bool) -> AnyPublisher<Void, Error>
+    func importKey(words: [String], passphrase: String?, name: String, creationDate: Date?, isPrivate: Bool) -> AnyPublisher<Void, Error>
     func isWalletCreated() -> AnyPublisher<Bool, Error>
     func getName() -> String?
-    func updateName(name: String) -> AnyPublisher<Void, Error>
     func getAccountDID() -> AnyPublisher<String, Error>
     func getAccountDIDSignature(message: String) -> AnyPublisher<String, Error>
     func getETHAddress() -> String?
@@ -30,7 +29,6 @@ public protocol SecureStorageProtocol {
     func ethSignTransactionWithIndex(transaction: EthereumTransaction, chainId: EthereumQuantity, index: Int) -> AnyPublisher<EthereumSignedTransaction, Error>
     func encryptFile(inputPath: String, outputPath: String) -> AnyPublisher<String, Error>
     func decryptFile(inputPath: String, outputPath: String, usingLegacy: Bool) -> AnyPublisher<String, Error>
-    func getTezosPublicKey() -> AnyPublisher<String, Error>
     func tezosSign(message: Data) -> AnyPublisher<[UInt8], Error>
     func tezosSignTransaction(forgedHex: String) -> AnyPublisher<[UInt8], Error>
     func getTezosPublicKeyWithIndex(index: Int) -> AnyPublisher<String, Error>
@@ -40,19 +38,128 @@ public protocol SecureStorageProtocol {
     func exportSeed() -> AnyPublisher<Seed, Error>
     func exportMnemonicWords() -> AnyPublisher<[String], Error>
     func removeKeys() -> AnyPublisher<Void, Error>
+    func setSeed(seed: Seed, isPrivate: Bool) -> AnyPublisher<Bool, Error>
+    func removeSeed() -> AnyPublisher<Bool, Error>
+    func generateSeedPublicData(seed: Seed) -> AnyPublisher<SeedPublicData, Error>
+    func setData(_ data: Data, forKey: String, isSync: Bool, isPrivate: Bool) -> Bool
 }
 
 class SecureStorage: SecureStorageProtocol {
-    
+
     private let keychain: KeychainProtocol
     
+    private let preGenerateAddressLimit: Int = 100
+
     init(keychain: KeychainProtocol = Keychain()) {
         self.keychain = keychain
     }
     
-    func createKey(passphrase: String? = "", name: String) -> AnyPublisher<Void, Error> {
+    private func generateEthAddresses(mnemonic: BIP39Mnemonic, passphrase: String?, start: Int = 0, end: Int = 100) -> [Int: String] {
+        var ethAddresses: [Int: String] = [:]
+
+        for index in start...end {
+            do {
+                // Generate Ethereum private key for the current index
+                let privateKey = try Keys.ethereumPrivateKeyWithIndex(mnemonic: mnemonic, passphrase: passphrase, index: index)
+
+                // Derive Ethereum address from the private key
+                let address = privateKey.address.hex(eip55: true)
+
+                // Store the address in the dictionary
+                ethAddresses[index] = address
+            } catch {
+                // Handle errors if private key generation fails
+                print("Error generating private key for index \(index): \(error)")
+            }
+        }
+
+        return ethAddresses
+    }
+
+    private func generateTezosPublicKeys(mnemonic: BIP39Mnemonic, passphrase: String?, start: Int, end: Int) -> [Int: String] {
+        var tezosPublicKeys: [Int: String] = [:]
+
+        for index in start...end {
+                // Generate Tezos wallet for the current index
+                let tezosWallet = Keys.tezosWalletWithIndex(mnemonic: mnemonic, passphrase: passphrase, index: index)
+
+                // Get the public key for the Tezos wallet
+                let publicKey = tezosWallet?.publicKeyBase58encoded()
+
+                // Store the public key in the dictionary
+                tezosPublicKeys[index] = publicKey
+        }
+
+        return tezosPublicKeys
+    }
+
+    private func generateEthAddress(mnemonic: BIP39Mnemonic, passphrase: String?) throws -> String {
+        let ethPrivateKey = try Keys.ethereumPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
+        let ethAddress = ethPrivateKey.address.hex(eip55: true)
+        return ethAddress
+    }
+
+    func generateSeedPublicData(seed: Seed) -> AnyPublisher<SeedPublicData, Error> {
+        Future<SeedPublicData, Error> { promise in
+            do {
+                /* seedName */
+                let name = seed.name
+                
+                /*  accountDidKey */
+                let mnemonic = Keys.mnemonic(seed.data)!
+                let passphrase = seed.passphrase
+                let privateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic)
+                
+                // Multicodec encoded with prefix 0xe7
+                var bytes: [UInt8] = [231, 1]
+                bytes.append(contentsOf: privateKey.publicKey.rawRepresentation.bytes)
+                let did = "did:key:z\(Base58.base58Encode(bytes))"
+                
+                /* pre-generate 100 eth addresses */
+                let ethAddresses = self.generateEthAddresses(mnemonic: mnemonic, passphrase: passphrase, start: 0, end: self.preGenerateAddressLimit)
+                
+                /* encryptionPrivateKey */
+                let encryptionPrivateKey = try Keys.encryptionPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
+                
+                /* accountDIDPrivateKey */
+                let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
+                
+                /* tezos public key */
+                let tezosPublicKeys = self.generateTezosPublicKeys(mnemonic: mnemonic, passphrase: passphrase, start: 0, end: self.preGenerateAddressLimit)
+                
+                let ethAddress = try self.generateEthAddress(mnemonic: mnemonic, passphrase: passphrase)
+                
+                var seedPublicData = SeedPublicData(ethAddress: ethAddress,
+                                                    creationDate: Date(),
+                                                    name: name,
+                                                    did: did,
+                                                    preGenerateEthAddress: ethAddresses,
+                                                    tezosPublicKeys: tezosPublicKeys)
+                
+                seedPublicData.encryptionPrivateKey = encryptionPrivateKey
+                seedPublicData.accountDIDPrivateKey = accountDIDPrivateKey
+                promise(.success(seedPublicData))
+            }
+            catch {
+                promise(.failure(LibAukError.generateSeedPublicDataError))
+            }
+        }.eraseToAnyPublisher()
+    }
+    
+    
+
+    internal func getSeedPublicData() -> SeedPublicData? {
+        guard let seedPublicDataRaw = self.keychain.getData(Constant.KeychainKey.seedPublicData, isSync: true),
+              let seedPublicData = try? JSONDecoder().decode(SeedPublicData.self, from: seedPublicDataRaw)
+        else {
+            return nil
+        }
+        return seedPublicData
+    }
+
+    func createKey(passphrase: String? = "", name: String, isPrivate: Bool) -> AnyPublisher<Void, Error> {
         Future<Seed, Error> { promise in
-            guard self.keychain.getData(Constant.KeychainKey.ethInfoKey, isSync: true) == nil else {
+            guard self.getSeedPublicData() == nil else {
                 promise(.failure(LibAukError.keyCreationExistingError(key: "createETHKey")))
                 return
             }
@@ -64,23 +171,24 @@ class SecureStorage: SecureStorageProtocol {
             
             let seed = Seed(data: entropy, name: name, creationDate: Date(), passphrase: passphrase)
             let seedData = seed.urString.utf8
-
             
-            self.keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+            self.keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true, isPrivate: isPrivate)
             promise(.success(seed))
         }
-        .compactMap { seed in
-            Keys.mnemonic(seed.data)
-        }
-        .tryMap { [unowned self] in
-            try self.saveKeyInfo(mnemonic: $0, passphrase: passphrase ?? "")
-        }
-        .eraseToAnyPublisher()
+        .flatMap { seed in
+            do {
+                return try self.saveSeedPublicData(seed: seed)
+                    .map { _ in () } // Map the output to Void
+                    .eraseToAnyPublisher()
+            } catch {
+                return Fail(error: error).eraseToAnyPublisher()
+            }
+        }.eraseToAnyPublisher()
     }
     
-    func importKey(words: [String], passphrase: String? = "", name: String, creationDate: Date?) -> AnyPublisher<Void, Error> {
+    func importKey(words: [String], passphrase: String? = "", name: String, creationDate: Date?, isPrivate: Bool) -> AnyPublisher<Void, Error> {
         Future<Seed, Error> { promise in
-            guard self.keychain.getData(Constant.KeychainKey.ethInfoKey, isSync: true) == nil else {
+            guard self.getSeedPublicData() == nil else {
                 promise(.failure(LibAukError.keyCreationExistingError(key: "createETHKey")))
                 return
             }
@@ -89,25 +197,52 @@ class SecureStorage: SecureStorageProtocol {
                 let seed = Seed(data: entropy, name: name, creationDate: creationDate ?? Date(), passphrase: passphrase)
                 let seedData = seed.urString.utf8
 
-                self.keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
+                self.keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true, isPrivate: isPrivate)
                 promise(.success(seed))
             } else {
                 promise(.failure(LibAukError.invalidMnemonicError))
             }
         }
-        .compactMap { seed in
-            Keys.mnemonic(seed.data)
-        }
-        .tryMap { [unowned self] in
-            try self.saveKeyInfo(mnemonic: $0, passphrase: passphrase ?? "")
+        .flatMap { seed in
+            do {
+                return try self.saveSeedPublicData(seed: seed)
+                    .map { _ in () } // Map the output to Void
+                    .eraseToAnyPublisher()
+            } catch {
+                return Fail(error: error).eraseToAnyPublisher()
+            }
         }
         .eraseToAnyPublisher()
     }
     
+    func setSeed(seed: Seed, isPrivate: Bool) -> AnyPublisher<Bool, Error> {
+        Future<Bool, Error> { promise in
+            guard self.keychain.set(seed.urString.utf8, forKey: Constant.KeychainKey.seed, isSync: true, isPrivate: isPrivate) else {
+                promise(.success(false))
+                return
+            }
+            promise(.success(true))
+        }.eraseToAnyPublisher()
+    }
+    
+    func setData(_ data: Data, forKey: String, isSync: Bool = true, isPrivate: Bool) -> Bool {
+        return self.keychain.set(data, forKey: forKey, isSync: isSync, isPrivate: isPrivate)
+    }
+
+    func removeSeed() -> AnyPublisher<Bool, Error> {
+        Future<Bool, Error> { promise in
+            guard self.keychain.remove(key: Constant.KeychainKey.seed, isSync: true) else {
+                promise(.success(false))
+                return
+            }
+            promise(.success(true))
+        }.eraseToAnyPublisher()
+    }
+
     func isWalletCreated() -> AnyPublisher<Bool, Error> {
         Future<Bool, Error> { promise in
-            guard let infoData = self.keychain.getData(Constant.KeychainKey.ethInfoKey, isSync: true),
-                  (try? JSONDecoder().decode(KeyInfo.self, from: infoData)) != nil else {
+            guard let seedPublicDataRaw = self.keychain.getData(Constant.KeychainKey.seedPublicData, isSync: true),
+                  (try? JSONDecoder().decode(SeedPublicData.self, from: seedPublicDataRaw)) != nil else {
                 promise(.success(false))
                 return
             }
@@ -118,120 +253,100 @@ class SecureStorage: SecureStorageProtocol {
     }
     
     func getName() -> String? {
-        guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
-              let seed = try? Seed(urString: seedUR.utf8) else {
+        guard let seedPublicData = self.getSeedPublicData() else {
             return ""
         }
         
-        return seed.name
-    }
-    
-    func updateName(name: String) -> AnyPublisher<Void, Error> {
-        Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
-                  let seed = try? Seed(urString: seedUR.utf8) else {
-                promise(.failure(LibAukError.emptyKey))
-                return
-            }
-            
-            promise(.success(seed))
-        }
-        .map {
-            Seed(data: $0.data, name: name, creationDate: $0.creationDate, passphrase: $0.passphrase)
-        }
-        .map { seed in
-            let seedData = seed.urString.utf8
-
-            self.keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true)
-            return ()
-        }
-        .eraseToAnyPublisher()
+        return seedPublicData.name
     }
     
     func getAccountDID() -> AnyPublisher<String, Error> {
-        Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
-                  let seed = try? Seed(urString: seedUR.utf8) else {
+        Future<SeedPublicData, Error> { promise in
+            guard let seedPublicData = self.getSeedPublicData() else {
                 promise(.failure(LibAukError.emptyKey))
                 return
             }
             
-            promise(.success(seed))
+            promise(.success(seedPublicData))
         }
-        .compactMap { seed in
-            guard let mnemonic = Keys.mnemonic(seed.data) else {
-                return nil
-            }
-            return (mnemonic, seed.passphrase)
-        }
-        .tryMap { (mnemonic: BIP39Mnemonic, passphrase: String?) in
-            let privateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
-            // Multicodec encoded with prefix 0xe7
-            
-            var bytes: [UInt8] = [231, 1]
-            bytes.append(contentsOf: privateKey.publicKey.rawRepresentation.bytes)
-            let did = "did:key:z\(Base58.base58Encode(bytes))"
-
-            return did
+        .tryMap { (seedPublicData) in
+            return seedPublicData.did
         }
         .eraseToAnyPublisher()
     }
     
     func getAccountDIDSignature(message: String) -> AnyPublisher<String, Error> {
-        Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
-                  let seed = try? Seed(urString: seedUR.utf8) else {
+        Future<Secp256k1.Signing.PrivateKey, Error> { promise in
+            guard let seedPublicData = self.getSeedPublicData(),
+                  let privateKey = seedPublicData.accountDIDPrivateKey
+            else {
                 promise(.failure(LibAukError.emptyKey))
                 return
             }
             
-            promise(.success(seed))
+            promise(.success(privateKey))
         }
-        .compactMap { seed in
-            guard let mnemonic = Keys.mnemonic(seed.data) else {
-                return nil
-            }
-            return (mnemonic, seed.passphrase)
-        }
-        .tryMap { (mnemonic: BIP39Mnemonic, passphrase: String?) in
-            let privateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
-            
+        .tryMap { (privateKey) in
             return try privateKey.signature(for: message.utf8).derRepresentation.hexString
         }
         .eraseToAnyPublisher()
     }
     
     func getETHAddress() -> String? {
-        guard let infoData = self.keychain.getData(Constant.KeychainKey.ethInfoKey, isSync: true),
-              let keyInfo = try? JSONDecoder().decode(KeyInfo.self, from: infoData) else {
+        guard let seedPublicData = self.getSeedPublicData(),
+              let ethAddress = seedPublicData.ethAddress as String? else {
             return nil
         }
-        return keyInfo.ethAddress
+        return ethAddress
     }
     
     func getETHAddressWithIndex(index: Int) -> AnyPublisher<String, Error> {
+        Future<String, Error> { promise in
+            guard let seedPublicData = self.getSeedPublicData(),
+                  let address = seedPublicData.preGenerateEthAddress[index] else {
+                promise(.failure(LibAukError.emptyKey))
+                return
+            }
+            promise(.success(address))
+        }
+        .catch({ error in
+            Future<Seed, Error> { promise in
+                guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                      let seed = try? Seed(urString: seedUR.utf8) else {
+                    promise(.failure(LibAukError.emptyKey))
+                    return
+                }
+
+                promise(.success(seed))
+            }
+            .compactMap { seed in
+                guard let mnemonic = Keys.mnemonic(seed.data) else {
+                    return nil
+                }
+                return (mnemonic, seed.passphrase)
+            }
+            .tryMap { (mnemonic: BIP39Mnemonic, passphrase: String?) in
+                let ethPrivateKey = try Keys.ethereumPrivateKeyWithIndex(mnemonic: mnemonic, passphrase: passphrase, index: index)
+                return ethPrivateKey.address.hex(eip55: true)
+            }
+            .eraseToAnyPublisher()
+        })
+        .eraseToAnyPublisher()
+    }
+    
+    private func getSeed() -> AnyPublisher<Seed, Error> {
         Future<Seed, Error> { promise in
             guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
                   let seed = try? Seed(urString: seedUR.utf8) else {
                 promise(.failure(LibAukError.emptyKey))
                 return
             }
-            
+
             promise(.success(seed))
-        }
-        .compactMap { seed in
-            guard let mnemonic = Keys.mnemonic(seed.data) else {
-                return nil
-            }
-            return (mnemonic, seed.passphrase)
-        }
-        .tryMap { (mnemonic: BIP39Mnemonic, passphrase: String?) in
-            let ethPrivateKey = try Keys.ethereumPrivateKeyWithIndex(mnemonic: mnemonic, passphrase: passphrase, index: index)
-            return ethPrivateKey.address.hex(eip55: true)
-        }
-        .eraseToAnyPublisher()
+        }.eraseToAnyPublisher()
     }
-    
+
+
     func ethSign(message: Bytes) -> AnyPublisher<(v: UInt, r: Bytes, s: Bytes), Error> {
         Future<Seed, Error> { promise in
             guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
@@ -327,22 +442,15 @@ class SecureStorage: SecureStorageProtocol {
     }
 
     private func getEncryptKey(usingLegacy: Bool = false) -> AnyPublisher<SymmetricKey, Error> {
-        return Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
-                  let seed = try? Seed(urString: seedUR.utf8) else {
+        return Future<SeedPublicData, Error> { promise in
+            guard let seedPublicData = self.getSeedPublicData() else {
                 promise(.failure(LibAukError.emptyKey))
                 return
             }
-            promise(.success(seed))
+            promise(.success(seedPublicData))
         }
-        .compactMap { seed in
-            guard let mnemonic = Keys.mnemonic(seed.data) else {
-                return nil
-            }
-            return (mnemonic, seed.passphrase)
-        }
-        .tryMap({ (mnemonic: BIP39Mnemonic, passphrase: String?) in
-            let privateKey = try Keys.encryptionPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
+        .tryMap({ (seedPublicData) in
+            let privateKey = seedPublicData.encryptionPrivateKey!
             if (usingLegacy) {
                 return SymmetricKey(data: privateKey.rawRepresentation)
             } else {
@@ -375,21 +483,27 @@ class SecureStorage: SecureStorageProtocol {
         })
         .eraseToAnyPublisher()
     }
-    
-    func getTezosPublicKey() -> AnyPublisher<String, Error> {
-        getTezosWallet()
-            .compactMap {
-                $0.publicKeyBase58encoded()
-            }
-            .eraseToAnyPublisher()
-    }
-    
+
     func getTezosPublicKeyWithIndex(index: Int) -> AnyPublisher<String, Error> {
-        getTezosWalletWithIndex(index: index)
-            .compactMap {
-                $0.publicKeyBase58encoded()
+        return Future<String, Error> { promise in
+            guard let seedPublicData = self.getSeedPublicData(),
+                  let address = seedPublicData.tezosPublicKeys[index] else {
+                promise(.failure(LibAukError.emptyKey))
+                return
             }
-            .eraseToAnyPublisher()
+            promise(.success(address))
+
+        }
+        .catch({ error in
+            return self.getTezosWalletWithIndex(index: index)
+                .compactMap {
+                    $0.publicKeyBase58encoded()
+                }
+                .eraseToAnyPublisher()
+        })
+        .eraseToAnyPublisher()
+
+
     }
     
     func tezosSign(message: Data) -> AnyPublisher<[UInt8], Error> {
@@ -447,7 +561,7 @@ class SecureStorage: SecureStorageProtocol {
         }
         .eraseToAnyPublisher()
     }
-    
+
     func exportMnemonicPassphrase() -> AnyPublisher<String, Error> {
         self.exportSeed()
             .map { $0.passphrase ?? "" }
@@ -465,14 +579,13 @@ class SecureStorage: SecureStorageProtocol {
     
     func removeKeys() -> AnyPublisher<Void, Error> {
         Future<Void, Error> { promise in
-            guard self.keychain.getData(Constant.KeychainKey.seed, isSync: true) != nil,
-                  self.keychain.getData(Constant.KeychainKey.ethInfoKey, isSync: true) != nil else {
+            guard self.keychain.getData(Constant.KeychainKey.seedPublicData, isSync: true) != nil else {
                 promise(.failure(LibAukError.emptyKey))
                 return
             }
             
             self.keychain.remove(key: Constant.KeychainKey.seed, isSync: true)
-            self.keychain.remove(key: Constant.KeychainKey.ethInfoKey, isSync: true)
+            self.keychain.remove(key: Constant.KeychainKey.seedPublicData, isSync: true)
 
             promise(.success(()))
         }
@@ -480,15 +593,11 @@ class SecureStorage: SecureStorageProtocol {
     }
 
     
-    func saveKeyInfo(mnemonic: BIP39Mnemonic, passphrase: String) throws {
-        let ethPrivateKey = try Keys.ethereumPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
-        
-        let keyInfo = KeyInfo(fingerprint: Keys.fingerprint(mnemonic: mnemonic, passphrase: passphrase) ?? "",
-                              ethAddress: ethPrivateKey.address.hex(eip55: true),
-                              creationDate: Date())
-
-        let keyInfoData = try JSONEncoder().encode(keyInfo)
-        keychain.set(keyInfoData, forKey: Constant.KeychainKey.ethInfoKey, isSync: true)
+    func saveSeedPublicData(seed: Seed) -> AnyPublisher<Void, Error> {
+        return self.generateSeedPublicData(seed: seed).tryMap { seedPublicData in
+            let seedPublicDataRaw = try JSONEncoder().encode(seedPublicData)
+            self.keychain.set(seedPublicDataRaw, forKey: Constant.KeychainKey.seedPublicData, isSync: true, isPrivate: false)
+        }.eraseToAnyPublisher()
     }
     
     internal func getTezosWallet() -> AnyPublisher<HDWallet, Error> {
