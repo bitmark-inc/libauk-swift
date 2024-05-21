@@ -7,7 +7,6 @@
 
 import Foundation
 import Combine
-import LibWally
 
 public class LibAuk {
     
@@ -33,15 +32,15 @@ public class LibAuk {
     }
     
     public func calculateEthFirstAddress(words: [String], passphrase: String) -> AnyPublisher<String, Error> {
-        Future<BIP39Mnemonic, Error> { promise in
+        Future<BIP39, Error> { promise in
             guard let entropy = Keys.entropy(words),
-                  let mnemonic = Keys.mnemonic(entropy) else {
+                  let bip39 = Keys.mnemonic(entropy) else {
                 promise(.failure(LibAukError.invalidMnemonicError))
                 return
             }
-            promise(.success(mnemonic))
-        }.tryMap({ mnemonic in
-            let ethPrivateKey = try Keys.ethereumPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
+            promise(.success(bip39))
+        }.tryMap({ bip39 in
+            let ethPrivateKey = try Keys.ethereumPrivateKey(bip39: bip39, passphrase: passphrase)
             return ethPrivateKey.address.hex(eip55: true)
         })
         .eraseToAnyPublisher()

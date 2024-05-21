@@ -7,8 +7,8 @@
 
 import Foundation
 import XCTest
-import LibWally
 import Combine
+import BCFoundation
 import Web3
 import URKit
 @testable import LibAuk
@@ -82,11 +82,11 @@ class SecureStorage_Tests: XCTestCase {
     func testIsWalletCreatedSuccessfully() throws {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
         let seed = Seed(data: Keys.entropy(words)!, name: "", creationDate: Date(), passphrase: "")
-        let mnemonic = Keys.mnemonic(seed.data)!
+        let bip39 = Keys.mnemonic(seed.data)!
 
         var seedPublicData = SeedPublicData(ethAddress: "0xA00cbE6a45102135A210F231901faA6c05D51465", creationDate: Date(), name: "", did: "did:key:zQ3shUnBWE7Dkskaozsnzsb78kVcgQFbtXf7zdCCDN3qepBGL", preGenerateEthAddress: [:], tezosPublicKeys: [:])
-        let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: "")
-        let encryptionPrivateKey = try Keys.encryptionPrivateKey(mnemonic: mnemonic, passphrase: "")
+        let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(bip39: bip39, passphrase: "")
+        let encryptionPrivateKey = try Keys.encryptionPrivateKey(bip39: bip39, passphrase: "")
         seedPublicData.encryptionPrivateKey = encryptionPrivateKey
         seedPublicData.accountDIDPrivateKey = accountDIDPrivateKey
         let seedPublicDataRaw = try JSONEncoder().encode(seedPublicData)
@@ -113,11 +113,11 @@ class SecureStorage_Tests: XCTestCase {
     func testGetETHAddressSuccessfully() throws {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
         let seed = Seed(data: Keys.entropy(words)!, name: "", creationDate: Date(), passphrase: "")
-        let mnemonic = Keys.mnemonic(seed.data)!
+        let bip39 = Keys.mnemonic(seed.data)!
 
         var seedPublicData = SeedPublicData(ethAddress: "0xA00cbE6a45102135A210F231901faA6c05D51465", creationDate: Date(), name: "", did: "did:key:zQ3shUnBWE7Dkskaozsnzsb78kVcgQFbtXf7zdCCDN3qepBGL", preGenerateEthAddress: [:], tezosPublicKeys: [:])
-        let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: "")
-        let encryptionPrivateKey = try Keys.encryptionPrivateKey(mnemonic: mnemonic, passphrase: "")
+        let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(bip39: bip39, passphrase: "")
+        let encryptionPrivateKey = try Keys.encryptionPrivateKey(bip39: bip39, passphrase: "")
         seedPublicData.encryptionPrivateKey = encryptionPrivateKey
         seedPublicData.accountDIDPrivateKey = accountDIDPrivateKey
         let seedPublicDataRaw = try JSONEncoder().encode(seedPublicData)
@@ -129,11 +129,11 @@ class SecureStorage_Tests: XCTestCase {
     func testGetAccountDIDSuccessfully() throws {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
         let seed = Seed(data: Keys.entropy(words)!, name: "", creationDate: Date(), passphrase: "")
-        let mnemonic = Keys.mnemonic(seed.data)!
+        let bip39 = Keys.mnemonic(seed.data)!
 
         var seedPublicData = SeedPublicData(ethAddress: "0xA00cbE6a45102135A210F231901faA6c05D51465", creationDate: Date(), name: "", did: "did:key:zQ3shUnBWE7Dkskaozsnzsb78kVcgQFbtXf7zdCCDN3qepBGL", preGenerateEthAddress: [:], tezosPublicKeys: [:])
-        let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: "")
-        let encryptionPrivateKey = try Keys.encryptionPrivateKey(mnemonic: mnemonic, passphrase: "")
+        let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(bip39: bip39, passphrase: "")
+        let encryptionPrivateKey = try Keys.encryptionPrivateKey(bip39: bip39, passphrase: "")
         seedPublicData.encryptionPrivateKey = encryptionPrivateKey
         seedPublicData.accountDIDPrivateKey = accountDIDPrivateKey
         let seedPublicDataRaw = try JSONEncoder().encode(seedPublicData)
@@ -160,11 +160,11 @@ class SecureStorage_Tests: XCTestCase {
     func testGetAccountDIDSignatureSuccessfully() throws {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
         let seed = Seed(data: Keys.entropy(words)!, name: "", creationDate: Date(), passphrase: "")
-        let mnemonic = Keys.mnemonic(seed.data)!
+        let bip39 = Keys.mnemonic(seed.data)!
 
         var seedPublicData = SeedPublicData(ethAddress: "0xA00cbE6a45102135A210F231901faA6c05D51465", creationDate: Date(), name: "", did: "did:key:zQ3shUnBWE7Dkskaozsnzsb78kVcgQFbtXf7zdCCDN3qepBGL", preGenerateEthAddress: [:], tezosPublicKeys: [:])
-        let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: "")
-        let encryptionPrivateKey = try Keys.encryptionPrivateKey(mnemonic: mnemonic, passphrase: "")
+        let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(bip39: bip39, passphrase: "")
+        let encryptionPrivateKey = try Keys.encryptionPrivateKey(bip39: bip39, passphrase: "")
         seedPublicData.encryptionPrivateKey = encryptionPrivateKey
         seedPublicData.accountDIDPrivateKey = accountDIDPrivateKey
         let seedPublicDataRaw = try JSONEncoder().encode(seedPublicData)
@@ -409,11 +409,11 @@ class SecureStorage_Tests: XCTestCase {
     func testRemoveKeysSuccessfully() throws {
         let words = "daring mix cradle palm crowd sea observe whisper rubber either uncle oak"
         let seed = Seed(data: Keys.entropy(words)!, name: "", creationDate: Date(), passphrase: "")
-        let mnemonic = Keys.mnemonic(seed.data)!
+        let bip39 = Keys.mnemonic(seed.data)!
 
         var seedPublicData = SeedPublicData(ethAddress: "0xA00cbE6a45102135A210F231901faA6c05D51465", creationDate: Date(), name: "", did: "did:key:zQ3shUnBWE7Dkskaozsnzsb78kVcgQFbtXf7zdCCDN3qepBGL", preGenerateEthAddress: [:], tezosPublicKeys: [:])
-        let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: "")
-        let encryptionPrivateKey = try Keys.encryptionPrivateKey(mnemonic: mnemonic, passphrase: "")
+        let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(bip39: bip39, passphrase: "")
+        let encryptionPrivateKey = try Keys.encryptionPrivateKey(bip39: bip39, passphrase: "")
         seedPublicData.encryptionPrivateKey = encryptionPrivateKey
         seedPublicData.accountDIDPrivateKey = accountDIDPrivateKey
         let seedPublicDataRaw = try JSONEncoder().encode(seedPublicData)
