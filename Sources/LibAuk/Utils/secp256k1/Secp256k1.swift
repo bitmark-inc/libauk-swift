@@ -8,7 +8,7 @@
 
 import Foundation
 import CryptoKit
-import secp256k1_swift
+import secp256k1
 
 public enum Secp256k1 {
 }
