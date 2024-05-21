@@ -266,7 +266,8 @@ extension Secp256k1.Signing {
             var cSig = secp256k1_ecdsa_signature()
 
             // parse and serialize der
-            guard secp256k1_ecdsa_signature_parse_compact(context, &cSig, rawSignatureBytes) == 1,
+            guard rawSignatureBytes.count == 64,
+                secp256k1_ecdsa_signature_parse_compact(context, &cSig, rawSignatureBytes) == 1,
                   secp256k1_ecdsa_signature_serialize_der(context, &derSignature, &derSize, &cSig) == 1 else {
                 throw Secp256k1Error.invalidSignature
             }
