@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: '14.0'
+        xcode-version: '15.0'
     - uses: actions/checkout@v2
     - name: Build
       run: xcodebuild -scheme LibAuk build -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 13'
