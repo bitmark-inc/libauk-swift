@@ -13,7 +13,7 @@ let package = Package(
             targets: ["LibAuk"]),
     ],
     dependencies: [
-        .package(name: "Web3.swift", url: "https://github.com/bitmark-inc/Web3.swift.git", branch: "master"),
+        .package(name: "Web3.swift", url: "https://github.com/bitmark-inc/Web3.swift.git", branch: "migrate_secp256"),
         .package(url: "https://github.com/BlockchainCommons/URKit.git", from: "14.0.2"),
         .package(url: "https://github.com/keefertaylor/Base58Swift.git", from: "2.1.0"),
         .package(name: "KukaiCoreSwift", url: "https://github.com/autonomy-system/kukai-core-swift.git", branch: "migrate_secp256"),
