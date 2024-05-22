@@ -4,7 +4,6 @@
 //
 //  Created by Ho Hien on 8/9/21.
 //
-
 import Foundation
 import Combine
 import BCFoundation
@@ -442,7 +441,7 @@ class SecureStorage: SecureStorageProtocol {
         .eraseToAnyPublisher()
     }
 
-    private func getEncryptKey(usingLegacy: Bool = false) -> AnyPublisher<SymmetricKey, Error> {
+    private func getEncryptKey(usingLegacy: Bool = false) -> AnyPublisher<CryptoKit.SymmetricKey, Error> {
         return Future<SeedPublicData, Error> { promise in
             guard let seedPublicData = self.getSeedPublicData() else {
                 promise(.failure(LibAukError.emptyKey))
@@ -455,7 +454,7 @@ class SecureStorage: SecureStorageProtocol {
             if (usingLegacy) {
                 return SymmetricKey(data: privateKey.rawRepresentation)
             } else {
-                let encryptionKey = HKDF<SHA256>.deriveKey(inputKeyMaterial: SymmetricKey(data: privateKey.rawRepresentation), salt: Data(), outputByteCount: 32)
+                let encryptionKey = HKDF<CryptoKit.SHA256>.deriveKey(inputKeyMaterial: SymmetricKey(data: privateKey.rawRepresentation), salt: Data(), outputByteCount: 32)
                 return encryptionKey
             }
         })

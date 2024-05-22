@@ -30,8 +30,8 @@ let package = Package(
             dependencies: [
                 .product(name: "Web3", package: "Web3.swift"),
                 .product(name: "URKit", package: "URKit"),
-                .product(name: "KukaiCoreSwift", package: "KukaiCoreSwift"),
                 .product(name: "Base58Swift", package: "Base58Swift"),
+                .product(name: "KukaiCoreSwift", package: "KukaiCoreSwift"),
                 .product(name: "TweetNacl", package: "TweetNacl"),
                 .product(name: "BCFoundation", package: "BCSwiftFoundation")
             ]),
