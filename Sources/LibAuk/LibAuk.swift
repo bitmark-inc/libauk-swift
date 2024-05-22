@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import BCFoundation
 
 public class LibAuk {
     
