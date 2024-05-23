@@ -170,9 +170,9 @@ class SecureStorage: SecureStorageProtocol {
             }
             
             let seed = Seed(data: entropy, name: name, creationDate: Date(), passphrase: passphrase)
-            let seedData = seed.urString.utf8
+            //let seedData = seed.urString.utf8
             
-            self.keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true, isPrivate: isPrivate)
+            self.keychain.set(seed.data, forKey: Constant.KeychainKey.seed, isSync: true, isPrivate: isPrivate)
             promise(.success(seed))
         }
         .flatMap { seed in
@@ -195,9 +195,9 @@ class SecureStorage: SecureStorageProtocol {
             
             if let entropy = Keys.entropy(words) {
                 let seed = Seed(data: entropy, name: name, creationDate: creationDate ?? Date(), passphrase: passphrase)
-                let seedData = seed.urString.utf8
+                //let seedData = seed.urString.utf8
 
-                self.keychain.set(seedData, forKey: Constant.KeychainKey.seed, isSync: true, isPrivate: isPrivate)
+                self.keychain.set(seed.data, forKey: Constant.KeychainKey.seed, isSync: true, isPrivate: isPrivate)
                 promise(.success(seed))
             } else {
                 promise(.failure(LibAukError.invalidMnemonicError))
@@ -217,7 +217,7 @@ class SecureStorage: SecureStorageProtocol {
     
     func setSeed(seed: Seed, isPrivate: Bool) -> AnyPublisher<Bool, Error> {
         Future<Bool, Error> { promise in
-            guard self.keychain.set(seed.urString.utf8, forKey: Constant.KeychainKey.seed, isSync: true, isPrivate: isPrivate) else {
+            guard self.keychain.set(seed.data, forKey: Constant.KeychainKey.seed, isSync: true, isPrivate: isPrivate) else {
                 promise(.success(false))
                 return
             }
@@ -311,8 +311,8 @@ class SecureStorage: SecureStorageProtocol {
         }
         .catch({ error in
             Future<Seed, Error> { promise in
-                guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
-                      let seed = try? Seed(urString: seedUR.utf8) else {
+                guard let data = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                      let seed = try? Seed(data: data, name: self.getName() ?? "") else {
                     promise(.failure(LibAukError.emptyKey))
                     return
                 }
@@ -336,8 +336,8 @@ class SecureStorage: SecureStorageProtocol {
     
     private func getSeed() -> AnyPublisher<Seed, Error> {
         Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
-                  let seed = try? Seed(urString: seedUR.utf8) else {
+            guard let data = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                  let seed = try? Seed(data: data, name: self.getName() ?? "") else {
                 promise(.failure(LibAukError.emptyKey))
                 return
             }
@@ -349,8 +349,8 @@ class SecureStorage: SecureStorageProtocol {
 
     func ethSign(message: Bytes) -> AnyPublisher<(v: UInt, r: Bytes, s: Bytes), Error> {
         Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
-                  let seed = try? Seed(urString: seedUR.utf8) else {
+            guard let data = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                  let seed = try? Seed(data: data, name: self.getName() ?? "") else {
                 promise(.failure(LibAukError.emptyKey))
                 return
             }
@@ -372,8 +372,8 @@ class SecureStorage: SecureStorageProtocol {
     
     func ethSignWithIndex(message: Bytes, index: Int) -> AnyPublisher<(v: UInt, r: Bytes, s: Bytes), Error> {
         Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
-                  let seed = try? Seed(urString: seedUR.utf8) else {
+            guard let data = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                  let seed = try? Seed(data: data, name: self.getName() ?? "") else {
                 promise(.failure(LibAukError.emptyKey))
                 return
             }
@@ -395,8 +395,8 @@ class SecureStorage: SecureStorageProtocol {
        
     func ethSignTransaction(transaction: EthereumTransaction, chainId: EthereumQuantity) -> AnyPublisher<EthereumSignedTransaction, Error> {
         Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
-                  let seed = try? Seed(urString: seedUR.utf8) else {
+            guard let data = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                  let seed = try? Seed(data: data, name: self.getName() ?? "") else {
                 promise(.failure(LibAukError.emptyKey))
                 return
             }
@@ -419,8 +419,8 @@ class SecureStorage: SecureStorageProtocol {
     
     func ethSignTransactionWithIndex(transaction: EthereumTransaction, chainId: EthereumQuantity, index: Int) -> AnyPublisher<EthereumSignedTransaction, Error> {
         Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
-                  let seed = try? Seed(urString: seedUR.utf8) else {
+            guard let data = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                  let seed = try? Seed(data: data, name: self.getName() ?? "") else {
                 promise(.failure(LibAukError.emptyKey))
                 return
             }
@@ -551,8 +551,8 @@ class SecureStorage: SecureStorageProtocol {
     
     func exportSeed() -> AnyPublisher<Seed, Error> {
         Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
-                  let seed = try? Seed(urString: seedUR.utf8) else {
+            guard let data = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                  let seed = try? Seed(data: data, name: self.getName() ?? "") else {
                 promise(.failure(LibAukError.emptyKey))
                 return
             }
@@ -602,8 +602,8 @@ class SecureStorage: SecureStorageProtocol {
     
     internal func getTezosWallet() -> AnyPublisher<HDWallet, Error> {
         Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
-                  let seed = try? Seed(urString: seedUR.utf8) else {
+            guard let data = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                  let seed = try? Seed(data: data, name: self.getName() ?? "") else {
                 promise(.failure(LibAukError.emptyKey))
                 return
             }
@@ -624,8 +624,8 @@ class SecureStorage: SecureStorageProtocol {
     
     internal func getTezosWalletWithIndex(index: Int) -> AnyPublisher<HDWallet, Error> {
         Future<Seed, Error> { promise in
-            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
-                  let seed = try? Seed(urString: seedUR.utf8) else {
+            guard let data = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                  let seed = try? Seed(data: data, name: self.getName() ?? "") else {
                 promise(.failure(LibAukError.emptyKey))
                 return
             }
