@@ -6,13 +6,13 @@
 //
 
 import Foundation
-import LibWally
+import BCFoundation
 
 class KeyCreator {
     
     static func createEntropy() -> Data? {
         guard let hex = Data.secureRandom(16)?.hexString,
-              let entropy = try? BIP39Mnemonic.Entropy(hex: hex) else {
+              let entropy = try? BIP39(hex: hex) else {
             return nil
         }
         

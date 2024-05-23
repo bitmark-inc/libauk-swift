@@ -7,6 +7,7 @@
 
 import Foundation
 import URKit
+import OrderedCollections
 
 public class Seed: Codable {
     public let data: Data
@@ -20,6 +21,7 @@ public class Seed: Codable {
         self.creationDate = creationDate
         self.passphrase = passphrase
     }
+    /*
     
     func cbor(nameLimit: Int? = nil, noteLimit: Int? = nil) -> CBOR {
         var a: [OrderedMap.Entry] = [
@@ -82,13 +84,13 @@ public class Seed: Codable {
         while let element = iterator.next() {
             let (indexElement, valueElement) = element
 
-            guard case let CBOR.unsignedInt(index) = indexElement else {
+            guard case let CBOR.unsigned(index) = indexElement else {
                 throw LibAukError.other(reason: "ur:crypto-seed: CBOR contains invalid keys.")
             }
 
             switch index {
             case 1:
-                guard case let CBOR.data(data) = valueElement else {
+                guard case let CBOR.bytes(data) = valueElement else {
                     throw LibAukError.other(reason: "ur:crypto-seed: CBOR doesn't contain data field.")
                 }
                 seedData = data
@@ -98,12 +100,12 @@ public class Seed: Codable {
                 }
                 creationDate = d
             case 3:
-                guard case let CBOR.utf8String(s) = valueElement else {
+                guard case let CBOR.text(s) = valueElement else {
                     throw LibAukError.other(reason: "ur:crypto-seed: Name field doesn't contain a string.")
                 }
                 name = s
             case 4:
-                guard case let CBOR.utf8String(s) = valueElement else {
+                guard case let CBOR.text(s) = valueElement else {
                     throw LibAukError.other(reason: "ur:crypto-seed: Passphrase field doesn't contain a string.")
                 }
                 passphrase = s
@@ -115,4 +117,5 @@ public class Seed: Codable {
         
         self.init(data: seedData!, name: name, creationDate: creationDate, passphrase: passphrase)
     }
+     */
 }
