@@ -42,7 +42,6 @@ class Keychain: KeychainProtocol {
             kSecClass as String: kSecClassGenericPassword as String,
             kSecAttrAccessGroup as String: LibAuk.shared.keyChainGroup,
             kSecAttrAccount as String: buildKeyAttr(prefix: prefix, key: forKey),
-            kSecAttrSynchronizable as String: syncAttr,
             kSecValueData as String: data,
         ] as [String: Any]
         
@@ -68,7 +67,7 @@ class Keychain: KeychainProtocol {
         let context = AccessControl.shared.context
         let query = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrSynchronizable as String: syncAttr!,
+//             kSecAttrSynchronizable as String: syncAttr!,
             kSecAttrAccount as String: buildKeyAttr(prefix: prefix, key: key),
             kSecReturnData as String: kCFBooleanTrue!,
             kSecAttrAccessGroup as String: LibAuk.shared.keyChainGroup,
@@ -92,7 +91,7 @@ class Keychain: KeychainProtocol {
         let syncAttr = isSync ? kCFBooleanTrue : kCFBooleanFalse
         let query = [
             kSecClass as String: kSecClassGenericPassword as String,
-            kSecAttrSynchronizable as String: syncAttr!,
+//             kSecAttrSynchronizable as String: syncAttr!,
             kSecAttrAccessGroup as String: LibAuk.shared.keyChainGroup,
             kSecAttrAccount as String: buildKeyAttr(prefix: prefix, key: key),
             kSecAttrAccessible as String: AccessControl.shared.accessible,
