@@ -562,6 +562,20 @@ class SecureStorage: SecureStorageProtocol {
         .eraseToAnyPublisher()
     }
 
+    func exportSeedWithoutAccess() -> AnyPublisher<Seed, Error> {
+            Future<Seed, Error> { promise in
+                guard let seedUR = self.keychain.getDataWithoutAccess(Constant.KeychainKey.seed, isSync: true),
+                      let seed = try? Seed(urString: seedUR.utf8) else {
+                    promise(.failure(LibAukError.emptyKey))
+                    return
+                }
+
+                promise(.success(seed))
+            }
+            .eraseToAnyPublisher()
+        }
+
+
     func exportMnemonicPassphrase() -> AnyPublisher<String, Error> {
         self.exportSeed()
             .map { $0.passphrase ?? "" }
