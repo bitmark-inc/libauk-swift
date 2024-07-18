@@ -67,7 +67,7 @@ class Keychain: KeychainProtocol {
         let context = AccessControl.shared.context
         let query = [
             kSecClass as String: kSecClassGenericPassword,
-//             kSecAttrSynchronizable as String: syncAttr!,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
             kSecAttrAccount as String: buildKeyAttr(prefix: prefix, key: key),
             kSecReturnData as String: kCFBooleanTrue!,
             kSecAttrAccessGroup as String: LibAuk.shared.keyChainGroup,
