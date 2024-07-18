@@ -10,6 +10,10 @@ import Foundation
 @testable import LibAuk
 
 class KeychainMock: KeychainProtocol {
+    func getDataWithoutAccess(_ key: String, isSync: Bool) -> Data? {
+        return nil
+    }
+    
     
     var values = [String: (Data, Bool)]()
     

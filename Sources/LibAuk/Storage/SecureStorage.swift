@@ -36,6 +36,7 @@ public protocol SecureStorageProtocol {
     func tezosSignTransactionWithIndex(forgedHex: String, index: Int) -> AnyPublisher<[UInt8], Error>
     func exportMnemonicPassphrase() -> AnyPublisher<String, Error>
     func exportSeed() -> AnyPublisher<Seed, Error>
+    func exportSeedWithoutAccess() -> AnyPublisher<Seed, Error>
     func exportMnemonicWords() -> AnyPublisher<[String], Error>
     func removeKeys() -> AnyPublisher<Void, Error>
     func setSeed(seed: Seed, isPrivate: Bool) -> AnyPublisher<Bool, Error>
