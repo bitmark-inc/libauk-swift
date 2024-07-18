@@ -15,6 +15,7 @@ protocol KeychainProtocol {
     func getData(_ key: String, isSync: Bool) -> Data?
     @discardableResult
     func remove(key: String, isSync: Bool) -> Bool
+    func getDataWithoutAccess(_ key: String, isSync: Bool) -> Data?
 }
 
 class Keychain: KeychainProtocol {
@@ -67,11 +68,35 @@ class Keychain: KeychainProtocol {
         let context = AccessControl.shared.context
         let query = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
+//            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
             kSecAttrAccount as String: buildKeyAttr(prefix: prefix, key: key),
             kSecReturnData as String: kCFBooleanTrue!,
             kSecAttrAccessGroup as String: LibAuk.shared.keyChainGroup,
             kSecAttrAccessible as String: AccessControl.shared.accessible,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ] as [String: Any]
+
+        var dataTypeRef: AnyObject?
+
+        let status: OSStatus = SecItemCopyMatching(query as CFDictionary, &dataTypeRef)
+
+        if status == noErr {
+            return dataTypeRef as? Data
+        } else {
+            return nil
+        }
+    }
+    
+    func getDataWithoutAccess(_ key: String, isSync: Bool = true) -> Data? {
+        let syncAttr = isSync ? kCFBooleanTrue : kCFBooleanFalse
+        let context = AccessControl.shared.context
+        let query = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
+            kSecAttrAccount as String: buildKeyAttr(prefix: prefix, key: key),
+            kSecReturnData as String: kCFBooleanTrue!,
+            kSecAttrAccessGroup as String: LibAuk.shared.keyChainGroup,
+//            kSecAttrAccessible as String: AccessControl.shared.accessible,
             kSecMatchLimit as String: kSecMatchLimitOne,
         ] as [String: Any]
 
