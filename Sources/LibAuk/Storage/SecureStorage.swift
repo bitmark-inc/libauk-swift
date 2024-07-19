@@ -109,7 +109,7 @@ class SecureStorage: SecureStorageProtocol {
                 /*  accountDidKey */
                 let mnemonic = Keys.mnemonic(seed.data)!
                 let passphrase = seed.passphrase
-                let privateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic)
+                let privateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
                 
                 // Multicodec encoded with prefix 0xe7
                 var bytes: [UInt8] = [231, 1]
@@ -147,8 +147,6 @@ class SecureStorage: SecureStorageProtocol {
         }.eraseToAnyPublisher()
     }
     
-    
-
     internal func getSeedPublicData() -> SeedPublicData? {
         guard let seedPublicDataRaw = self.keychain.getData(Constant.KeychainKey.seedPublicData, isSync: true),
               let seedPublicData = try? JSONDecoder().decode(SeedPublicData.self, from: seedPublicDataRaw)
@@ -278,17 +276,42 @@ class SecureStorage: SecureStorageProtocol {
     
     func getAccountDIDSignature(message: String) -> AnyPublisher<String, Error> {
         Future<Secp256k1.Signing.PrivateKey, Error> { promise in
-            guard let seedPublicData = self.getSeedPublicData(),
-                  let privateKey = seedPublicData.accountDIDPrivateKey
-            else {
+            // Try to get the seed public data and private key
+            if let seedPublicData = self.getSeedPublicData(),
+               let privateKey = seedPublicData.accountDIDPrivateKey {
+                // Success if private key is found
                 promise(.failure(LibAukError.emptyKey))
-                return
+//                promise(.success(privateKey))
+            } else {
+                // Failure if private key is not found
+                promise(.failure(LibAukError.emptyKey))
             }
-            
-            promise(.success(privateKey))
         }
-        .tryMap { (privateKey) in
-            return try privateKey.signature(for: message.utf8).derRepresentation.hexString
+        .catch { error in
+            // If initial future fails, try to fetch seed from keychain
+            Future<Seed, Error> { promise in
+                guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                      let seed = try? Seed(urString: seedUR.utf8) else {
+                    promise(.failure(LibAukError.emptyKey))
+                    return
+                }
+                promise(.success(seed))
+            }
+            .compactMap { seed -> (BIP39Mnemonic, String?)? in
+                // Try to generate mnemonic from seed data
+                guard let mnemonic = Keys.mnemonic(seed.data) else {
+                    return nil
+                }
+                return (mnemonic, seed.passphrase)
+            }
+            .tryMap { (mnemonic, passphrase) -> Secp256k1.Signing.PrivateKey in
+                // Try to generate private key from mnemonic and passphrase
+                try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
+            }
+        }
+        .tryMap { privateKey in
+            // Generate signature from the message
+            try privateKey.signature(for: message.utf8).derRepresentation.hexString
         }
         .eraseToAnyPublisher()
     }
