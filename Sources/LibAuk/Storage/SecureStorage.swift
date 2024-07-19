@@ -260,18 +260,46 @@ class SecureStorage: SecureStorageProtocol {
     }
     
     func getAccountDID() -> AnyPublisher<String, Error> {
-        Future<SeedPublicData, Error> { promise in
-            guard let seedPublicData = self.getSeedPublicData() else {
+        Future<Seed, Error> { promise in
+            guard let seedUR = self.keychain.getData(Constant.KeychainKey.seed, isSync: true),
+                  let seed = try? Seed(urString: seedUR.utf8) else {
                 promise(.failure(LibAukError.emptyKey))
                 return
             }
+            promise(.success(seed))
+        }
+        .compactMap { seed -> (BIP39Mnemonic, String?)? in
+            // Try to generate mnemonic from seed data
+            guard let mnemonic = Keys.mnemonic(seed.data) else {
+                return nil
+            }
+            return (mnemonic, seed.passphrase)
+        }
+        .tryMap { (mnemonic: BIP39Mnemonic, passphrase: String?) in
+            let privateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
+            // Multicodec encoded with prefix 0xe7
             
-            promise(.success(seedPublicData))
-        }
-        .tryMap { (seedPublicData) in
-            return seedPublicData.did
-        }
-        .eraseToAnyPublisher()
+            var bytes: [UInt8] = [231, 1]
+            bytes.append(contentsOf: privateKey.publicKey.rawRepresentation.bytes)
+            let did = "did:key:z\(Base58.base58Encode(bytes))"
+
+            return did
+
+        }.eraseToAnyPublisher()
+//        Future<SeedPublicData, Error> { promise in
+//            guard let seedPublicData = self.getSeedPublicData() else {
+//                promise(.failure(LibAukError.emptyKey))
+//                return
+//            }
+//            
+//            promise(.success(seedPublicData))
+//        }
+//        .catch{ error in
+//        }
+//        .tryMap { (seedPublicData) in
+//            return seedPublicData.did
+//        }
+//        .eraseToAnyPublisher()
     }
     
     func getAccountDIDSignature(message: String) -> AnyPublisher<String, Error> {
