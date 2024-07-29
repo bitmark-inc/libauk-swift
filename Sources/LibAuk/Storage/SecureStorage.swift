@@ -41,7 +41,7 @@ public protocol SecureStorageProtocol {
     func removeKeys() -> AnyPublisher<Void, Error>
     func setSeed(seed: Seed, isPrivate: Bool) -> AnyPublisher<Bool, Error>
     func removeSeed() -> AnyPublisher<Bool, Error>
-    func generateSeedPublicData(seed: Seed) -> AnyPublisher<SeedPublicData, Error>
+    func generateSeedPublicData(seed: Seed, preGenerateLimit: Int = 100) -> AnyPublisher<SeedPublicData, Error>
     func setData(_ data: Data, forKey: String, isSync: Bool, isPrivate: Bool) -> Bool
 }
 
