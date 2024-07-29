@@ -100,7 +100,7 @@ class SecureStorage: SecureStorageProtocol {
         return ethAddress
     }
 
-    func generateSeedPublicData(seed: Seed) -> AnyPublisher<SeedPublicData, Error> {
+    func generateSeedPublicData(seed: Seed, preGenerateLimit: Int = 100) -> AnyPublisher<SeedPublicData, Error> {
         Future<SeedPublicData, Error> { promise in
             do {
                 /* seedName */
@@ -117,7 +117,7 @@ class SecureStorage: SecureStorageProtocol {
                 let did = "did:key:z\(Base58.base58Encode(bytes))"
                 
                 /* pre-generate 100 eth addresses */
-                let ethAddresses = self.generateEthAddresses(mnemonic: mnemonic, passphrase: passphrase, start: 0, end: self.preGenerateAddressLimit)
+                let ethAddresses = self.generateEthAddresses(mnemonic: mnemonic, passphrase: passphrase, start: 0, end: preGenerateLimit)
                 
                 /* encryptionPrivateKey */
                 let encryptionPrivateKey = try Keys.encryptionPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
@@ -126,7 +126,7 @@ class SecureStorage: SecureStorageProtocol {
                 let accountDIDPrivateKey = try Keys.accountDIDPrivateKey(mnemonic: mnemonic, passphrase: passphrase)
                 
                 /* tezos public key */
-                let tezosPublicKeys = self.generateTezosPublicKeys(mnemonic: mnemonic, passphrase: passphrase, start: 0, end: self.preGenerateAddressLimit)
+                let tezosPublicKeys = self.generateTezosPublicKeys(mnemonic: mnemonic, passphrase: passphrase, start: 0, end: preGenerateLimit)
                 
                 let ethAddress = try self.generateEthAddress(mnemonic: mnemonic, passphrase: passphrase)
                 
